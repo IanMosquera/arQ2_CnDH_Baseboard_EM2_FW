@@ -133,7 +133,7 @@ int main(void)
   // [x] RTC Initialization
   // [ ] Normal Power Mode Initialization
   // [ ] System Configuration Initialization
-  // [ ] Primary MCU Check
+  // [!] Primary MCU Check
 
   // [ ] Peripheral Checks
   // [ ]   Temperature
@@ -145,6 +145,9 @@ int main(void)
 
 
   RTC_Init();
+  Check_Primary_Board();
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -474,6 +477,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void Check_Primary_Board(void)
+{
+	if (arQ.Flg.RETURN_FLAG == false)
+		Log_Error(arQ.Buf.RETURN_VAL);
+}
+
+
+
 void MAIN_PROGRAM(void)
 {
 	WatchDog_Reset();
@@ -676,6 +688,12 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
 	//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 	va_end(args);
+}
+
+
+void Log_Error(char *pBuffer)
+{
+
 }
 /* USER CODE END 4 */
 

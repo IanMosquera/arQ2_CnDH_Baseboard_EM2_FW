@@ -42,6 +42,7 @@ extern "C" {
 typedef struct
 {
 	char USB_BUFFER[255];
+	char RETURN_VAL[255];
 } buffers_t;
 
 
@@ -67,6 +68,7 @@ typedef struct{
 typedef struct
 {
 	bool USBSERIAL_FLAG;
+	bool RETURN_FLAG;
 }flag_t;
 
 
@@ -92,6 +94,8 @@ typedef struct
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void Check_Primary_Board(void);
+
 void MAIN_PROGRAM(void);
 void BLE_PROGRAM(void);
 
@@ -111,6 +115,8 @@ void USB_CDC_RxHandler(uint8_t*, uint32_t);
 void Clear_USB_Buffers(void);
 
 void xprintf(uint8_t stream, char *FormatString, ...);
+
+void Log_Error(char *pBuffer);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -120,6 +126,9 @@ void xprintf(uint8_t stream, char *FormatString, ...);
 /* USER CODE BEGIN Private defines */
 #define PC			0
 #define GSM			1
+
+// Return Message Definitions
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
