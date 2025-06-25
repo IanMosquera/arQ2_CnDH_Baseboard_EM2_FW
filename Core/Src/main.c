@@ -140,6 +140,10 @@ int main(void)
   // [ ]   I2C
   // [ ]
 
+
+  // Github Token: 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
+
+
   RTC_Init();
   /* USER CODE END 2 */
 
