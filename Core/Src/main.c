@@ -141,9 +141,6 @@ int main(void)
   // [ ]
 
 
-  // Github Token: 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
-
-
   RTC_Init();
   Check_Primary_Board();
 
