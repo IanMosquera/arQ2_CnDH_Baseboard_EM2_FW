@@ -244,17 +244,5 @@ void Custom_Rx_Send_Notification(void) /* Property Notification */
 }
 
 /* USER CODE BEGIN FD_LOCAL_FUNCTIONS*/
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if (htim == &htim16)
-	{
-		USBSerial_Interrupt_Check();
 
-		if (BLE_MODE == true)
-		{
-			BLE_Mode_LED_Stat();
-			xprintf(PC, "BLE Mode Running\r\n");
-		}
-	}
-}
 /* USER CODE END FD_LOCAL_FUNCTIONS*/

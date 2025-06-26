@@ -15,6 +15,17 @@
   *
   ******************************************************************************
   */
+
+  // [!] RTC Initialization Problem with Delayed time
+  // [ ] Normal Power Mode Initialization
+  // [ ] System Configuration Initialization
+  // [!] Primary MCU Check
+
+  // [ ] Peripheral Checks
+  // [ ]   Temperature
+  // [ ]   I2C
+  // [ ]
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -25,7 +36,8 @@
 #include "usbd_cdc_if.h"
 #include "string.h"
 #include "stdbool.h"
-#include "ble_hci_le.h"
+
+#include "interruptSerial.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,15 +65,21 @@ IWDG_HandleTypeDef hiwdg;
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
+
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+LTC4162 ltc;
+arQ_t arQ;
+
+uint8_t rxChar;
+
+
 char strDisplay[250];
 
-bool BLE_MODE = false;
-bool BLE_INIT = false;
-
-
-arQ_t arQ;
+bool BLE_MODE;
+bool BLE_INIT;
 
 /* USER CODE END PV */
 
@@ -74,6 +92,8 @@ static void MX_IPCC_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_IWDG_Init(void);
+static void MX_TIM17_Init(void);
+static void MX_USART1_UART_Init(void);
 static void MX_RF_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -127,18 +147,16 @@ int main(void)
   MX_USB_Device_Init();
   MX_TIM16_Init();
   MX_IWDG_Init();
+  MX_TIM17_Init();
+  MX_USART1_UART_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
-  // [x] RTC Initialization
-  // [ ] Normal Power Mode Initialization
-  // [ ] System Configuration Initialization
-  // [!] Primary MCU Check
 
-  // [ ] Peripheral Checks
-  // [ ]   Temperature
-  // [ ]   I2C
-  // [ ]
+  BLE_MODE = false;
+  BLE_INIT = false;
+
+
 
 
   RTC_Init();
@@ -442,6 +460,86 @@ static void MX_TIM16_Init(void)
 }
 
 /**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 32000 - 1;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 1000 - 1;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -477,9 +575,14 @@ static void MX_GPIO_Init(void)
 
 void Check_Primary_Board(void)
 {
+  Clear_Serial_Buffers();
+  HAL_UART_Receive_IT(&huart1, &rxChar, 1);
+  sprintf(arQ.Buf.PC_MSG, "CHECK_PMCU");
+  HAL_UART_Transmit(&huart1, (uint8_t *)&arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG), HAL_MAX_DELAY);
+
 	if (arQ.Flg.RETURN_FLAG == false)
 	{
-		Log_Error(arQ.Buf.RETURN_VAL);
+		Log_Error(arQ.Buf.FUNCRETURNVAL);
 		arQ.Flg.RETURN_FLAG = true;
 	}
 }
@@ -601,6 +704,9 @@ void USBSerial_Interrupt_Check(void)
 }
 
 
+
+
+
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
 	CDC_Transmit_FS(Buf, Len);
@@ -609,12 +715,30 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 	arQ.Flg.USBSERIAL_FLAG = true;
 }
 
-void Clear_USB_Buffers(void)
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	memset(arQ.Buf.USB_BUFFER, '\0', 255);
-	arQ.Flg.USBSERIAL_FLAG = false;
+	arQ.Flg.INTSERIAL_FLAG = true;
+	arQ.Buf.RXD_DATA[arQ.Ctr.WRITE_CNTR++] = rxChar;
+
+	HAL_UART_Receive_IT(&huart1, &rxChar, 1);
 }
 
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim == &htim16)
+	{
+		USBSerial_Interrupt_Check();
+
+		if (BLE_MODE == true)
+		{
+			BLE_Mode_LED_Stat();
+			xprintf(PC, "BLE Mode Running\r\n");
+		}
+	}
+}
 
 
 void xprintf(uint8_t stream, char *FormatString, ...)

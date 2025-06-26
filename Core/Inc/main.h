@@ -35,11 +35,14 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
+#include "LTC4162.h"
+#include "arQ_CnDH_BaseBoard.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef struct
+/*typedef struct
 {
 	char USB_BUFFER[255];
 	char RETURN_VAL[255];
@@ -77,7 +80,7 @@ typedef struct
 	buffers_t				Buf;
 	dateTime_t			DTm;
 	flag_t					Flg;
-}arQ_t;
+}arQ_t;*/
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -112,7 +115,6 @@ void WatchDog_Reset(void);
 void USBSerial_Interrupt_Check(void);
 
 void USB_CDC_RxHandler(uint8_t*, uint32_t);
-void Clear_USB_Buffers(void);
 
 void xprintf(uint8_t stream, char *FormatString, ...);
 
