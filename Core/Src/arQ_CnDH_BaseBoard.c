@@ -689,9 +689,9 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 			j++;
 
 			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+			else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 
-			HAL_Delay(50);
+			HAL_Delay(10);
 			x = 0;
 			format[x++] = '%';
 
@@ -727,7 +727,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
 				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
-			HAL_Delay(50);
+			HAL_Delay(10);
 			i = -1;
 		}
 	}

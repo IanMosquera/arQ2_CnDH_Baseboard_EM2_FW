@@ -104,10 +104,14 @@ void ArQ_DateTime_Init(void);
 void MAIN_PROGRAM(void);
 void BLE_PROGRAM(void);
 
+void arQ_Sys_Init(void);
+
 void RTC_Init(void);
 void RTC_Assign_Date(RTC_DateTypeDef *pDate);
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime);
 void RTC_ShowDateTime(void);
+
+void arQ_ShowDateTime(void);
 
 void BLE_Mode_LED_Stat(void);
 void Main_Prog_LED_Stat(void);

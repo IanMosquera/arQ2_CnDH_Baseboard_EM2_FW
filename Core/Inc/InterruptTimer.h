@@ -14,6 +14,7 @@
 
 void DateTime_Init(void);
 void Count_arQ_Time(void);
+void Count_One_Sec(void);
 uint8_t IS_LEAP(uint8_t year);
 
 bool Time_To_Get_Sensor_Data(void);

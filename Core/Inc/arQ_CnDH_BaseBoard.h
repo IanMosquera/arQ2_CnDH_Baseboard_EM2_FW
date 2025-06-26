@@ -8,8 +8,8 @@
 #ifndef INC_ARQ_CNDH_BASEBOARD_H_
 #define INC_ARQ_CNDH_BASEBOARD_H_
 
-#include "main.h"
 
+#include "stm32wbxx_hal.h"
 #include "stdbool.h"
 
 
@@ -192,6 +192,8 @@ typedef struct
 	uint8_t WRITE_CNTR;
 	uint8_t WRITE2_CNTR;
 	uint8_t READ_CNTR;
+	uint8_t LED_CTR;
+	uint8_t PROG_CTR;
 }Counter_t;
 
 typedef struct

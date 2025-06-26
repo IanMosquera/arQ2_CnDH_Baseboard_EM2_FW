@@ -150,14 +150,11 @@ int main(void)
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
-  BLE_MODE = false;
-  BLE_INIT = false;
-
-
+  arQ_Sys_Init();
   RTC_Init();
   ArQ_DateTime_Init();
 
-  arQ.DTm.ctr = 0;
+
   HAL_TIM_Base_Start_IT(&htim17);
 
   Check_Primary_Board();
@@ -429,9 +426,9 @@ static void MX_TIM17_Init(void)
 
   /* USER CODE END TIM17_Init 1 */
   htim17.Instance = TIM17;
-  htim17.Init.Prescaler = 32000;
+  htim17.Init.Prescaler = 32000 -1;
   htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim17.Init.Period = 1000 - 1;
+  htim17.Init.Period = 50 - 1;
   htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim17.Init.RepetitionCounter = 0;
   htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -569,7 +566,7 @@ void ArQ_DateTime_Init(void)
 	arQ.DTm.Sec = 0;
 	arQ.DTm.Min = 23;
 	arQ.DTm.Hour = 5;
-	arQ.DTm.Days = 25;
+	arQ.DTm.Days = 26;
 	arQ.DTm.Month = 6;
 	arQ.DTm.Year = 25;
 }
@@ -580,16 +577,10 @@ void MAIN_PROGRAM(void)
 	//WatchDog_Reset();
 
 	USBSerial_Interrupt_Check();
-
-	//xprintf(PC, "Main Program Running\n");
-
-	HAL_Delay(10);
 	RTC_ShowDateTime();
-
-
+	arQ_ShowDateTime();
 	Main_Prog_LED_Stat();
 
-	HAL_Delay(1000);
 }
 
 
@@ -601,6 +592,19 @@ void BLE_PROGRAM(void)
 		BLE_INIT = true;
 	}
 	MX_APPE_Process();
+}
+
+
+void arQ_Sys_Init(void)
+{
+  BLE_MODE = false;
+  BLE_INIT = false;
+
+  arQ.DTm.ctr = 0;
+
+  arQ.Ctr.PROG_CTR	= 0;
+  arQ.Ctr.LED_CTR		= 0;
+
 }
 
 
@@ -625,8 +629,8 @@ void RTC_Assign_Date(RTC_DateTypeDef *pDate)
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime)
 {
 	pTime->Hours 			= 0x09;
-	pTime->Minutes		=	0x00;
-	pTime->Seconds		= 0x00;
+	pTime->Minutes		=	0x24;
+	pTime->Seconds		= 0x15;
 	pTime->SubSeconds	= 0x00;
 	pTime->DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
 	pTime->StoreOperation = RTC_STOREOPERATION_RESET;
@@ -641,9 +645,28 @@ void RTC_ShowDateTime(void)
   HAL_RTC_GetDate(&hrtc, &sdatestructureget, RTC_FORMAT_BIN);
   HAL_RTC_GetTime(&hrtc, &stimestructureget, RTC_FORMAT_BIN);
 
-  xprintf(PC, "Date and Time: %02d/%02d/%02d,%02d:%02d:%02d\r\n",
+  sprintf(arQ.DTm.DateTime, "%02d/%02d/%02d,%02d:%02d:%02d",
   		sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date,
   		stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
+
+
+  //xprintf(PC, "Date and Time: %02d/%02d/%02d,%02d:%02d:%02d\r\n",
+  //		sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date,
+  //		stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
+}
+
+
+void arQ_ShowDateTime(void)
+{
+	if (arQ.Ctr.PROG_CTR >= 20) // 20 x 50ms = 1sec
+	{
+		xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
+					arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+					arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
+		arQ.Ctr.PROG_CTR = 0;
+
+		// arQ.Ctr.LED_CTR = 0;
+	}
 }
 
 
@@ -655,14 +678,15 @@ void BLE_Mode_LED_Stat(void)
 
 void Main_Prog_LED_Stat(void)
 {
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
+	if (arQ.Ctr.LED_CTR < 20)
+	{
+		if (arQ.Ctr.LED_CTR == 0) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 4) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		if (arQ.Ctr.LED_CTR == 5) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 9) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+	}
+	else
+		arQ.Ctr.LED_CTR = 0;
 }
 
 
@@ -725,9 +749,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			xprintf(PC, "BLE Mode Running\r\n");
 		}
 	}
-	else if (htim == &htim17)
+	else if (htim == &htim17) // every 50ms
 	{
 		Count_arQ_Time();
+		arQ.Ctr.PROG_CTR++;
+		arQ.Ctr.LED_CTR++;
 	}
 
 }
