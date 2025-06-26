@@ -35,7 +35,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
-#include "LTC4162.h"
+
 #include "arQ_CnDH_BaseBoard.h"
 
 /* USER CODE END Includes */
@@ -99,6 +99,8 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 void Check_Primary_Board(void);
 
+void ArQ_DateTime_Init(void);
+
 void MAIN_PROGRAM(void);
 void BLE_PROGRAM(void);
 
@@ -116,14 +118,26 @@ void USBSerial_Interrupt_Check(void);
 
 void USB_CDC_RxHandler(uint8_t*, uint32_t);
 
-void xprintf(uint8_t stream, char *FormatString, ...);
-
 void Log_Error(char *pBuffer);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define NRST_PMCU_Pin GPIO_PIN_0
+#define NRST_PMCU_GPIO_Port GPIOA
+#define WDI_Pin GPIO_PIN_1
+#define WDI_GPIO_Port GPIOA
 #define STAT_Pin GPIO_PIN_4
 #define STAT_GPIO_Port GPIOA
+#define GPIO4_Pin GPIO_PIN_5
+#define GPIO4_GPIO_Port GPIOA
+#define IO3_Pin GPIO_PIN_2
+#define IO3_GPIO_Port GPIOB
+#define GPIO1_Pin GPIO_PIN_0
+#define GPIO1_GPIO_Port GPIOB
+#define GPIO2_Pin GPIO_PIN_1
+#define GPIO2_GPIO_Port GPIOB
+#define GPIO3_Pin GPIO_PIN_4
+#define GPIO3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 #define PC			0

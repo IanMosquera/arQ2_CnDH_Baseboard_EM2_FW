@@ -20,7 +20,7 @@ extern arQ_t arQ;
 // [!] Needs to integrate on HAL_UART_ReceiveCallBack function"
 void rda_isr(void)
 {
-	arQ.Flg.INTSERIAL_FLAG = 1;
+	arQ.Flg.USB_SERIAL_FLAG = true;
 	// arQ.Buf.RXD_DATA[arQ.Ctr.WRITE_CNTR++] = rxBuffer[0];
 }
 
@@ -30,21 +30,20 @@ void rda_isr(void)
 
 void rda_isr2(void)
 {
-	arQ.Flg.USBSERIAL_FLAG = 1;
+	arQ.Flg.UART_SERIAL_FLAG = 1;
 	// arQ.Buf.RXD2_DATA[arQ.Ctr.WRITE2_CNTR++] = rxBuffer[0];
 }
 
 
 
 
-void Clear_Serial_Buffers(void)
+void Clear_UART_Buffers(void)
 {
-	memset(arQ.Buf.RXD_DATA, '\0', 255);
-	memset(arQ.Buf.GSM_RESPONSE, '\0', 255);
+	memset(arQ.Buf.UART_DATA, '\0', 255);
 
 	arQ.Ctr.WRITE_CNTR = 0;
 	arQ.Ctr.READ_CNTR	= 0;
-	arQ.Flg.USBSERIAL_FLAG = false;
+	arQ.Flg.UART_SERIAL_FLAG = false;
 }
 
 
@@ -56,7 +55,7 @@ void Clear_USB_Buffers(void)
 	memset(arQ.Buf.RXD2_DATA, '\0', 255);
 
 	arQ.Ctr.WRITE2_CNTR  = 0;
-	arQ.Flg.USBSERIAL_FLAG = 0;
+	arQ.Flg.USB_SERIAL_FLAG = 0;
 }
 
 
@@ -69,7 +68,7 @@ void getDataFromPC(void)
 
   while(while_ == 0)
   {
-    if (arQ.Flg.USBSERIAL_FLAG == true)
+    if (arQ.Flg.UART_SERIAL_FLAG == true)
     {
       HAL_Delay(200);
       arQ.Buf.RXD2_DATA[arQ.Ctr.WRITE2_CNTR - 1] = '\0';
@@ -88,7 +87,7 @@ void Get_Data_From_USB(void)
 
   while(escape == false)
   {
-    if (arQ.Flg.USBSERIAL_FLAG == true)
+    if (arQ.Flg.UART_SERIAL_FLAG == true)
     {
       HAL_Delay(200);
       //arQ.Buf.RXD2_DATA[arQ.Ctr.WRITE2_CNTR - 1] = '\0';
@@ -126,24 +125,24 @@ char *Get_Serial_Response()
 	uint8_t bufferLength;
 	uint8_t desiredResponseLength;
 
-	bufferLength = strlen(arQ.Buf.RXD_DATA);
+	bufferLength = strlen(arQ.Buf.UART_DATA);
 	desiredResponseLength = strlen(arQ.Buf.DESIRED_RESPONSE);
 
 	for (i = 0; i < bufferLength; i++)
 	{
 		// First character found
-		if (arQ.Buf.RXD_DATA[i] == arQ.Buf.DESIRED_RESPONSE[0])
+		if (arQ.Buf.UART_DATA[i] == arQ.Buf.DESIRED_RESPONSE[0])
 		{
 			truthCounter = 0;
 			for(j = 0; j < desiredResponseLength; i++, j++)
 			{
-				if (arQ.Buf.RXD_DATA[i] == arQ.Buf.DESIRED_RESPONSE[j])
+				if (arQ.Buf.UART_DATA[i] == arQ.Buf.DESIRED_RESPONSE[j])
 					truthCounter++;
 
 				if (truthCounter == desiredResponseLength)
 				{
 					for (x = 0; x < (bufferLength - 1); x++)
-						arQ.Buf.GSM_RESPONSE[x] = arQ.Buf.RXD_DATA[x+i+1];
+						arQ.Buf.GSM_RESPONSE[x] = arQ.Buf.UART_DATA[x+i+1];
 
 					return &arQ.Buf.GSM_RESPONSE[0];
 				}

@@ -27,7 +27,7 @@
 
 // xprintf stream
 #define PC			0
-#define GSM			1
+#define MCU			1
 
 typedef struct
 {
@@ -94,7 +94,7 @@ typedef struct
 {
 	char SMS_RCV[255];
 	char SMS_TOBE_SENT[300];
-	char RXD_DATA[255];
+	char UART_DATA[255];
 	char RXD2_DATA[255];
 	char USB_BUFFER[255];
 	char DESIRED_RESPONSE[17];
@@ -150,8 +150,9 @@ typedef struct
 typedef struct
 {
 	bool EXT_FLAG;
-	bool INTSERIAL_FLAG;
-	bool USBSERIAL_FLAG;
+	bool USB_SERIAL_FLAG;
+	bool UART_SERIAL_FLAG;
+	bool PMCU_STAT_FLAG_OK;
 	bool CUM_RAIN_RESET_FLAG;
 	bool MIDNIGHT_RESET_LTE_FLAG;
 	bool PROC_START;
@@ -239,6 +240,6 @@ typedef struct
 //void Enable_Normal_Power_Mode(void);
 //void Trigger_Lora_Transmit_Pin(void);
 //bool Data_Not_Yet_Taken(void);
-//void xprintf(uint8_t stream, char *FormatString, ...);
+void xprintf(uint8_t stream, char *FormatString, ...);
 
 #endif /* INC_ARQ_CNDH_BASEBOARD_H_ */

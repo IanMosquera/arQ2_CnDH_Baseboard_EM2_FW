@@ -17,6 +17,7 @@
   */
 
   // [!] RTC Initialization Problem with Delayed time
+  // [!] Primary MCU Check
   // [ ] Normal Power Mode Initialization
   // [ ] System Configuration Initialization
   // [!] Primary MCU Check
@@ -37,7 +38,8 @@
 #include "string.h"
 #include "stdbool.h"
 
-#include "interruptSerial.h"
+#include "InterruptSerial.h"
+#include "InterruptTimer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,11 +58,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
-
 IPCC_HandleTypeDef hipcc;
 
-IWDG_HandleTypeDef hiwdg;
+QSPI_HandleTypeDef hqspi;
 
 RTC_HandleTypeDef hrtc;
 
@@ -70,11 +70,11 @@ TIM_HandleTypeDef htim17;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-LTC4162 ltc;
+
 arQ_t arQ;
 
 uint8_t rxChar;
-
+uint8_t arQ_tmi17_ctr;
 
 char strDisplay[250];
 
@@ -87,13 +87,12 @@ bool BLE_INIT;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_IPCC_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM16_Init(void);
-static void MX_IWDG_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_QUADSPI_Init(void);
 static void MX_RF_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -142,24 +141,25 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
   MX_RTC_Init();
   MX_USB_Device_Init();
   MX_TIM16_Init();
-  MX_IWDG_Init();
   MX_TIM17_Init();
   MX_USART1_UART_Init();
+  MX_QUADSPI_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
-
 
   BLE_MODE = false;
   BLE_INIT = false;
 
 
-
-
   RTC_Init();
+  ArQ_DateTime_Init();
+
+  arQ.DTm.ctr = 0;
+  HAL_TIM_Base_Start_IT(&htim17);
+
   Check_Primary_Board();
 
 
@@ -204,14 +204,12 @@ void SystemClock_Config(void)
   * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
-                              |RCC_OSCILLATORTYPE_LSI1|RCC_OSCILLATORTYPE_HSE
-                              |RCC_OSCILLATORTYPE_LSE;
+                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -261,54 +259,6 @@ void PeriphCommonClock_Config(void)
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00B07CB4;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
   * @brief IPCC Initialization Function
   * @param None
   * @retval None
@@ -335,31 +285,35 @@ static void MX_IPCC_Init(void)
 }
 
 /**
-  * @brief IWDG Initialization Function
+  * @brief QUADSPI Initialization Function
   * @param None
   * @retval None
   */
-static void MX_IWDG_Init(void)
+static void MX_QUADSPI_Init(void)
 {
 
-  /* USER CODE BEGIN IWDG_Init 0 */
+  /* USER CODE BEGIN QUADSPI_Init 0 */
 
-  /* USER CODE END IWDG_Init 0 */
+  /* USER CODE END QUADSPI_Init 0 */
 
-  /* USER CODE BEGIN IWDG_Init 1 */
+  /* USER CODE BEGIN QUADSPI_Init 1 */
 
-  /* USER CODE END IWDG_Init 1 */
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-  hiwdg.Init.Window = 4095;
-  hiwdg.Init.Reload = 3333;
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  /* USER CODE END QUADSPI_Init 1 */
+  /* QUADSPI parameter configuration*/
+  hqspi.Instance = QUADSPI;
+  hqspi.Init.ClockPrescaler = 255;
+  hqspi.Init.FifoThreshold = 1;
+  hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
+  hqspi.Init.FlashSize = 1;
+  hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
+  hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
+  if (HAL_QSPI_Init(&hqspi) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN IWDG_Init 2 */
+  /* USER CODE BEGIN QUADSPI_Init 2 */
 
-  /* USER CODE END IWDG_Init 2 */
+  /* USER CODE END QUADSPI_Init 2 */
 
 }
 
@@ -475,7 +429,7 @@ static void MX_TIM17_Init(void)
 
   /* USER CODE END TIM17_Init 1 */
   htim17.Instance = TIM17;
-  htim17.Init.Prescaler = 32000 - 1;
+  htim17.Init.Prescaler = 32000;
   htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim17.Init.Period = 1000 - 1;
   htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -557,14 +511,33 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, NRST_PMCU_Pin|GPIO4_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin : STAT_Pin */
-  GPIO_InitStruct.Pin = STAT_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, IO3_Pin|GPIO1_Pin|GPIO2_Pin|GPIO3_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : NRST_PMCU_Pin STAT_Pin GPIO4_Pin */
+  GPIO_InitStruct.Pin = NRST_PMCU_Pin|STAT_Pin|GPIO4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(STAT_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : WDI_Pin */
+  GPIO_InitStruct.Pin = WDI_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(WDI_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : IO3_Pin GPIO1_Pin GPIO2_Pin GPIO3_Pin */
+  GPIO_InitStruct.Pin = IO3_Pin|GPIO1_Pin|GPIO2_Pin|GPIO3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -575,23 +548,36 @@ static void MX_GPIO_Init(void)
 
 void Check_Primary_Board(void)
 {
-  Clear_Serial_Buffers();
-  HAL_UART_Receive_IT(&huart1, &rxChar, 1);
-  sprintf(arQ.Buf.PC_MSG, "CHECK_PMCU");
-  HAL_UART_Transmit(&huart1, (uint8_t *)&arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG), HAL_MAX_DELAY);
+	Clear_UART_Buffers();
 
-	if (arQ.Flg.RETURN_FLAG == false)
-	{
-		Log_Error(arQ.Buf.FUNCRETURNVAL);
-		arQ.Flg.RETURN_FLAG = true;
-	}
+  HAL_UART_Receive_IT(&huart1, &rxChar, 1);
+  xprintf(MCU, "Check_MCU");
+
+  HAL_Delay(1000);
+
+  if (strcmp(arQ.Buf.UART_DATA, "PMCU_OK") == 0)
+  	arQ.Flg.PMCU_STAT_FLAG_OK = true;
+  else
+  	arQ.Flg.PMCU_STAT_FLAG_OK = false;
+
+  Clear_UART_Buffers();
 }
 
+
+void ArQ_DateTime_Init(void)
+{
+	arQ.DTm.Sec = 0;
+	arQ.DTm.Min = 23;
+	arQ.DTm.Hour = 5;
+	arQ.DTm.Days = 25;
+	arQ.DTm.Month = 6;
+	arQ.DTm.Year = 25;
+}
 
 
 void MAIN_PROGRAM(void)
 {
-	WatchDog_Reset();
+	//WatchDog_Reset();
 
 	USBSerial_Interrupt_Check();
 
@@ -599,6 +585,7 @@ void MAIN_PROGRAM(void)
 
 	HAL_Delay(10);
 	RTC_ShowDateTime();
+
 
 	Main_Prog_LED_Stat();
 
@@ -683,12 +670,12 @@ void WatchDog_Reset(void)
 {
 	xprintf(PC, "Resetting Watchdog\r\n");
 	HAL_Delay(10);
-	HAL_IWDG_Refresh(&hiwdg);
+	//HAL_IWDG_Refresh(&hiwdg);
 }
 
 void USBSerial_Interrupt_Check(void)
 {
-	if (arQ.Flg.USBSERIAL_FLAG == true)
+	if (arQ.Flg.USB_SERIAL_FLAG == true)
 	{
 		if (strcmp(arQ.Buf.USB_BUFFER, "MODE_BLE\r\n") == 0)
 		{
@@ -712,15 +699,15 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 	CDC_Transmit_FS(Buf, Len);
 
 	sprintf(arQ.Buf.USB_BUFFER, (char *)Buf);
-	arQ.Flg.USBSERIAL_FLAG = true;
+	arQ.Flg.USB_SERIAL_FLAG = true;
 }
 
 
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	arQ.Flg.INTSERIAL_FLAG = true;
-	arQ.Buf.RXD_DATA[arQ.Ctr.WRITE_CNTR++] = rxChar;
+	arQ.Flg.UART_SERIAL_FLAG = true;
+	arQ.Buf.UART_DATA[arQ.Ctr.WRITE_CNTR++] = rxChar;
 
 	HAL_UART_Receive_IT(&huart1, &rxChar, 1);
 }
@@ -738,80 +725,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			xprintf(PC, "BLE Mode Running\r\n");
 		}
 	}
-}
-
-
-void xprintf(uint8_t stream, char *FormatString, ...)
-{
-	va_list args;
-	char *sval;
-	int  ival;
-	float fval;
-	char tempSTR[100];
-	char cdcSTR[100];
-	char format[10];
-	int8_t i, j, x;
-	uint8_t len;
-
-	len = strlen(FormatString);
-	va_start(args, FormatString);
-
-	for (i = 0, j = 0; j < len; i++, j++)
+	else if (htim == &htim17)
 	{
-		tempSTR[i] = FormatString[j];
-
-		if (FormatString[j] == '%')
-		{
-			tempSTR[i] = '\0';
-			j++;
-
-			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-
-			HAL_Delay(50);
-			x = 0;
-			format[x++] = '%';
-
-			if (FormatString[j] != 's')
-			{
-				do format[x++] = FormatString[j++];
-				while (FormatString[j] != 'd' && FormatString[j] != 'f');
-			}
-
-			if (FormatString[j] == 's')
-			{
-				sval = va_arg(args, char *);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
-			}
-			else if (FormatString[j] == 'd')
-			{
-				format[x] = 'd';
-				format[x+1] = '\0';
-				ival = va_arg(args, int);
-				sprintf(cdcSTR, format, ival);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-			}
-			else if (FormatString[j] == 'f')
-			{
-				format[x] = 'f';
-				format[x+1] = '\0';
-				fval = va_arg(args, double);
-				sprintf(cdcSTR, format, fval);
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-			}
-			HAL_Delay(50);
-			i = -1;
-		}
+		Count_arQ_Time();
 	}
-	tempSTR[i] = '\0';
-	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-	va_end(args);
+
 }
 
 

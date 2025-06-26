@@ -659,7 +659,10 @@ bool Data_Not_Yet_Taken(void)
 		return true;
 	else
 		return false;
-}
+}*/
+
+
+
 
 void xprintf(uint8_t stream, char *FormatString, ...)
 {
@@ -703,7 +706,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sval = va_arg(args, char *);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
+				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'd')
 			{
@@ -713,7 +716,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sprintf(cdcSTR, format, ival);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'f')
 			{
@@ -722,7 +725,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				fval = va_arg(args, double);
 				sprintf(cdcSTR, format, fval);
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			HAL_Delay(50);
 			i = -1;
@@ -730,9 +733,9 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 	}
 	tempSTR[i] = '\0';
 	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+	else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 	va_end(args);
-}*/
+}
 
 
 /*void PrintPC(char *szFormat, ...){

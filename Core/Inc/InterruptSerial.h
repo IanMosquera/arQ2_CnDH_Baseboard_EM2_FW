@@ -14,7 +14,7 @@
 
 void rda_isr(void);
 void rda_isr2(void);
-void Clear_Serial_Buffers(void);
+void Clear_UART_Buffers(void);
 void Clear_USB_Buffers(void);
 void getDataFromPC(void);
 
