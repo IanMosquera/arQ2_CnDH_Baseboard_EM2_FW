@@ -150,6 +150,8 @@ int main(void)
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_Delay(3000);
+
   arQ_Sys_Init();
   RTC_Init();
   ArQ_DateTime_Init();
@@ -188,11 +190,6 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_MEDIUMHIGH);
-
   /** Configure the main internal regulator output voltage
   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
@@ -201,12 +198,12 @@ void SystemClock_Config(void)
   * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
-                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+                              |RCC_OSCILLATORTYPE_LSI1|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -368,7 +365,7 @@ static void MX_RTC_Init(void)
 
   /** Enable the WakeUp
   */
-  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+  if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
   {
     Error_Handler();
   }
@@ -553,7 +550,10 @@ void Check_Primary_Board(void)
   HAL_Delay(1000);
 
   if (strcmp(arQ.Buf.UART_DATA, "PMCU_OK") == 0)
+  {
   	arQ.Flg.PMCU_STAT_FLAG_OK = true;
+  	xprintf(PC, "%s\r\n", arQ.Buf.UART_DATA);
+  }
   else
   	arQ.Flg.PMCU_STAT_FLAG_OK = false;
 
@@ -563,8 +563,8 @@ void Check_Primary_Board(void)
 
 void ArQ_DateTime_Init(void)
 {
-	arQ.DTm.Sec = 0;
-	arQ.DTm.Min = 23;
+	arQ.DTm.Sec = 50;
+	arQ.DTm.Min = 15;
 	arQ.DTm.Hour = 5;
 	arQ.DTm.Days = 26;
 	arQ.DTm.Month = 6;
@@ -577,10 +577,18 @@ void MAIN_PROGRAM(void)
 	//WatchDog_Reset();
 
 	USBSerial_Interrupt_Check();
-	RTC_ShowDateTime();
+	//RTC_ShowDateTime();
 	arQ_ShowDateTime();
 	Main_Prog_LED_Stat();
 
+	if (Time_To_Get_Data_From_PMCU())
+	{
+		if (Command_Not_Yet_Sent_To_PMCU())
+		{
+			Get_Power_Data();
+		}
+		//Send Command
+	}
 }
 
 
@@ -600,10 +608,14 @@ void arQ_Sys_Init(void)
   BLE_MODE = false;
   BLE_INIT = false;
 
+  arQ.Cfg.SendingTime = 2;
+
   arQ.DTm.ctr = 0;
 
   arQ.Ctr.PROG_CTR	= 0;
   arQ.Ctr.LED_CTR		= 0;
+
+  arQ.Flg.COMMAND_SENT = false;
 
 }
 
@@ -664,8 +676,6 @@ void arQ_ShowDateTime(void)
 					arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
 					arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
 		arQ.Ctr.PROG_CTR = 0;
-
-		// arQ.Ctr.LED_CTR = 0;
 	}
 }
 

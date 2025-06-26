@@ -11,6 +11,7 @@
 #include "usbd_cdc_if.h"
 #include "stm32wbxx_hal_uart.h"
 
+#include "InterruptSerial.h"
 
 extern UART_HandleTypeDef huart1;
 extern arQ_t arQ;
@@ -661,8 +662,37 @@ bool Data_Not_Yet_Taken(void)
 		return false;
 }*/
 
+bool Time_To_Get_Data_From_PMCU(void)
+{
+	if ((arQ.DTm.Min % arQ.Cfg.SendingTime) == 0)
+		return true;
+	else
+	{
+		arQ.Flg.DATA_TAKEN = false;
+		arQ.Flg.COMMAND_SENT = false;
+		return false;
+	}
+}
 
 
+bool Command_Not_Yet_Sent_To_PMCU(void)
+{
+	if (arQ.Flg.COMMAND_SENT == false)
+		return true;
+	else
+		return false;
+}
+
+
+void Get_Power_Data(void)
+{
+	xprintf(MCU, "POWER_DATA");
+	arQ.Flg.COMMAND_SENT = true;
+	HAL_Delay(1000);
+
+	xprintf(PC, "%s\r\n", arQ.Buf.UART_DATA);
+	Clear_UART_Buffers();
+}
 
 void xprintf(uint8_t stream, char *FormatString, ...)
 {
