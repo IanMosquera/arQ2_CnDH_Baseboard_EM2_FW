@@ -478,7 +478,10 @@ static void MX_GPIO_Init(void)
 void Check_Primary_Board(void)
 {
 	if (arQ.Flg.RETURN_FLAG == false)
+	{
 		Log_Error(arQ.Buf.RETURN_VAL);
+		arQ.Flg.RETURN_FLAG = true;
+	}
 }
 
 
