@@ -579,7 +579,7 @@ void MAIN_PROGRAM(void)
 	USBSerial_Interrupt_Check();
 	//RTC_ShowDateTime();
 	arQ_ShowDateTime();
-	Main_Prog_LED_Stat();
+
 
 	if (Time_To_Get_Data_From_PMCU())
 	{
@@ -589,6 +589,8 @@ void MAIN_PROGRAM(void)
 		}
 		//Send Command
 	}
+
+	Main_Prog_LED_Stat();
 }
 
 
@@ -670,13 +672,10 @@ void RTC_ShowDateTime(void)
 
 void arQ_ShowDateTime(void)
 {
-	if (arQ.Ctr.PROG_CTR >= 20) // 20 x 50ms = 1sec
-	{
-		xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
-					arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
-					arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
-		arQ.Ctr.PROG_CTR = 0;
-	}
+	xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
+				arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+				arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
+	arQ.Ctr.PROG_CTR = 0;
 }
 
 
