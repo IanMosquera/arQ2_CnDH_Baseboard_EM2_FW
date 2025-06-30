@@ -97,32 +97,24 @@ typedef struct
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void Check_Primary_Board(void);
+
 
 void ArQ_DateTime_Init(void);
-
-void MAIN_PROGRAM(void);
-void BLE_PROGRAM(void);
-
-void arQ_Sys_Init(void);
-
-void RTC_Init(void);
+void ArQ_ShowDateTime(void);
+void ArQ_Sys_Init(void);
+void BLE_Mode_LED_Stat(void);
+void BLE_Program(void);
+void Check_Primary_Board(void);
+void Log_Error(char *pBuffer);
+void Main_Program(void);
+void Main_Prog_LED_Stat(void);
 void RTC_Assign_Date(RTC_DateTypeDef *pDate);
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime);
+void RTC_Init(void);
 void RTC_ShowDateTime(void);
-
-void arQ_ShowDateTime(void);
-
-void BLE_Mode_LED_Stat(void);
-void Main_Prog_LED_Stat(void);
-
-void WatchDog_Reset(void);
-
 void USBSerial_Interrupt_Check(void);
-
 void USB_CDC_RxHandler(uint8_t*, uint32_t);
-
-void Log_Error(char *pBuffer);
+void WatchDog_Reset(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

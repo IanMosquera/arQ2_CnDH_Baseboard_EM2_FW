@@ -152,7 +152,7 @@ int main(void)
 
   HAL_Delay(3000);
 
-  arQ_Sys_Init();
+  ArQ_Sys_Init();
   RTC_Init();
   ArQ_DateTime_Init();
 
@@ -174,9 +174,9 @@ int main(void)
 
 
   	if (BLE_MODE == false)
-  		MAIN_PROGRAM();
+  		Main_Program();
   	else
-  		BLE_PROGRAM();
+  		BLE_Program();
   }
   /* USER CODE END 3 */
 }
@@ -540,6 +540,59 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void ArQ_DateTime_Init(void)
+{
+	arQ.DTm.Sec = 50;
+	arQ.DTm.Min = 15;
+	arQ.DTm.Hour = 5;
+	arQ.DTm.Days = 26;
+	arQ.DTm.Month = 6;
+	arQ.DTm.Year = 25;
+}
+
+
+void ArQ_ShowDateTime(void)
+{
+	xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
+				arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+				arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
+	arQ.Ctr.PROG_CTR = 0;
+}
+
+
+void ArQ_Sys_Init(void)
+{
+  BLE_MODE = false;
+  BLE_INIT = false;
+
+  arQ.Cfg.SendingTime = 2;
+
+  arQ.DTm.ctr = 0;
+
+  arQ.Ctr.PROG_CTR	= 0;
+  arQ.Ctr.LED_CTR		= 0;
+
+  arQ.Flg.COMMAND_SENT = false;
+}
+
+
+void BLE_Mode_LED_Stat(void)
+{
+	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+}
+
+
+void BLE_Program(void)
+{
+	if (BLE_INIT == false)
+	{
+		MX_APPE_Init();
+		BLE_INIT = true;
+	}
+	MX_APPE_Process();
+}
+
+
 void Check_Primary_Board(void)
 {
 	Clear_UART_Buffers();
@@ -561,24 +614,19 @@ void Check_Primary_Board(void)
 }
 
 
-void ArQ_DateTime_Init(void)
+void Log_Error(char *pBuffer)
 {
-	arQ.DTm.Sec = 50;
-	arQ.DTm.Min = 15;
-	arQ.DTm.Hour = 5;
-	arQ.DTm.Days = 26;
-	arQ.DTm.Month = 6;
-	arQ.DTm.Year = 25;
+
 }
 
 
-void MAIN_PROGRAM(void)
+void Main_Program(void)
 {
 	//WatchDog_Reset();
 
 	USBSerial_Interrupt_Check();
 	//RTC_ShowDateTime();
-	arQ_ShowDateTime();
+	ArQ_ShowDateTime();
 
 
 	if (Time_To_Get_Data_From_PMCU())
@@ -594,42 +642,19 @@ void MAIN_PROGRAM(void)
 }
 
 
-void BLE_PROGRAM(void)
+void Main_Prog_LED_Stat(void)
 {
-	if (BLE_INIT == false)
+	if (arQ.Ctr.LED_CTR < 20)
 	{
-		MX_APPE_Init();
-		BLE_INIT = true;
+		if (arQ.Ctr.LED_CTR == 0) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 4) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		if (arQ.Ctr.LED_CTR == 5) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 9) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
 	}
-	MX_APPE_Process();
+	else
+		arQ.Ctr.LED_CTR = 0;
 }
 
-
-void arQ_Sys_Init(void)
-{
-  BLE_MODE = false;
-  BLE_INIT = false;
-
-  arQ.Cfg.SendingTime = 2;
-
-  arQ.DTm.ctr = 0;
-
-  arQ.Ctr.PROG_CTR	= 0;
-  arQ.Ctr.LED_CTR		= 0;
-
-  arQ.Flg.COMMAND_SENT = false;
-
-}
-
-
-void RTC_Init(void)
-{
-	RTC_TimeTypeDef sTime = {0};
-	RTC_DateTypeDef sDate = {0};
-
-	RTC_Assign_Date(&sDate);
-	RTC_Assign_Time(&sTime);
-}
 
 void RTC_Assign_Date(RTC_DateTypeDef *pDate)
 {
@@ -651,6 +676,17 @@ void RTC_Assign_Time(RTC_TimeTypeDef *pTime)
 	if (HAL_RTC_SetTime(&hrtc, pTime, RTC_FORMAT_BCD) != HAL_OK) Error_Handler();
 }
 
+
+void RTC_Init(void)
+{
+	RTC_TimeTypeDef sTime = {0};
+	RTC_DateTypeDef sDate = {0};
+
+	RTC_Assign_Date(&sDate);
+	RTC_Assign_Time(&sTime);
+}
+
+
 void RTC_ShowDateTime(void)
 {
   RTC_DateTypeDef sdatestructureget;
@@ -670,42 +706,6 @@ void RTC_ShowDateTime(void)
 }
 
 
-void arQ_ShowDateTime(void)
-{
-	xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
-				arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
-				arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
-	arQ.Ctr.PROG_CTR = 0;
-}
-
-
-void BLE_Mode_LED_Stat(void)
-{
-	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
-}
-
-
-void Main_Prog_LED_Stat(void)
-{
-	if (arQ.Ctr.LED_CTR < 20)
-	{
-		if (arQ.Ctr.LED_CTR == 0) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-		if (arQ.Ctr.LED_CTR == 4) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-		if (arQ.Ctr.LED_CTR == 5) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-		if (arQ.Ctr.LED_CTR == 9) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-	}
-	else
-		arQ.Ctr.LED_CTR = 0;
-}
-
-
-void WatchDog_Reset(void)
-{
-	xprintf(PC, "Resetting Watchdog\r\n");
-	HAL_Delay(10);
-	//HAL_IWDG_Refresh(&hiwdg);
-}
-
 void USBSerial_Interrupt_Check(void)
 {
 	if (arQ.Flg.USB_SERIAL_FLAG == true)
@@ -724,9 +724,6 @@ void USBSerial_Interrupt_Check(void)
 }
 
 
-
-
-
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
 	CDC_Transmit_FS(Buf, Len);
@@ -734,6 +731,16 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 	sprintf(arQ.Buf.USB_BUFFER, (char *)Buf);
 	arQ.Flg.USB_SERIAL_FLAG = true;
 }
+
+
+void WatchDog_Reset(void)
+{
+	xprintf(PC, "Resetting Watchdog\r\n");
+	HAL_Delay(10);
+	//HAL_IWDG_Refresh(&hiwdg);
+}
+
+
 
 
 
@@ -764,12 +771,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		arQ.Ctr.PROG_CTR++;
 		arQ.Ctr.LED_CTR++;
 	}
-
-}
-
-
-void Log_Error(char *pBuffer)
-{
 
 }
 /* USER CODE END 4 */
