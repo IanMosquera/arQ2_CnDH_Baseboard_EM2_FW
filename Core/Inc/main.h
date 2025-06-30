@@ -45,6 +45,11 @@ typedef struct
 	char RETURN_VAL[255];
 } buffers_t;
 
+typedef struct
+{
+	uint8_t USB_Char_Count;
+} counters_t;
+
 
 typedef struct{
 	uint8_t ctr;
@@ -74,9 +79,10 @@ typedef struct
 
 typedef struct
 {
-	buffers_t				Buf;
+	buffers_t			Buf;
+	counters_t			Ctr;
 	dateTime_t			DTm;
-	flag_t					Flg;
+	flag_t				Flg;
 }arQ_t;
 /* USER CODE END ET */
 

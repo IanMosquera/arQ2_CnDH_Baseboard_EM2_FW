@@ -137,8 +137,6 @@ int main(void)
 
   // [ ] Peripheral Checks
   // [ ]   Temperature
-  // [ ]   I2C
-  // [ ]
 
 
   RTC_Init();
@@ -499,7 +497,7 @@ void MAIN_PROGRAM(void)
 
 	Main_Prog_LED_Stat();
 
-	HAL_Delay(1000);
+	HAL_Delay(500);
 }
 
 
@@ -606,6 +604,7 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 	CDC_Transmit_FS(Buf, Len);
 
 	sprintf(arQ.Buf.USB_BUFFER, (char *)Buf);
+	arQ.Ctr.USB_Char_Count = Len;
 	arQ.Flg.USBSERIAL_FLAG = true;
 }
 
