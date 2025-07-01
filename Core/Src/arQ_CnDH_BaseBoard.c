@@ -706,6 +706,8 @@ void Get_Power_Data(void)
 	Clear_UART_Buffers();
 }
 
+
+
 void xprintf(uint8_t stream, char *FormatString, ...)
 {
 	va_list args;

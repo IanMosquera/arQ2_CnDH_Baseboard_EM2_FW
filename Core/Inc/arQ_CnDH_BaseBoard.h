@@ -28,6 +28,7 @@
 // xprintf stream
 #define PC			0
 #define MCU			1
+#define BLE			2
 
 typedef struct
 {

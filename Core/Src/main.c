@@ -158,19 +158,16 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init code for STM32_WPAN */
+  MX_APPE_Init();
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-
+    MX_APPE_Process();
     /* USER CODE BEGIN 3 */
-
-
-  	if (arQ.Flg.BLE_MODE_FLAG == false)
-  		Main_Program();
-  	else
-  		BLE_Program();
   }
   /* USER CODE END 3 */
 }
@@ -567,6 +564,7 @@ void ArQ_ShowDateTime(void)
 
 void ArQ_Sys_Init(void)
 {
+	HAL_TIM_Base_Start_IT(&htim16);
 	HAL_TIM_Base_Start_IT(&htim17);
 
   arQ.Flg.BLE_MODE_FLAG = false;
@@ -606,20 +604,19 @@ void BLE_Program(void)
 
 void Blink_LED(void)
 {
-	if (arQ.Flg.BLE_MODE_FLAG)
-		BLE_Mode_LED_Stat();
-	else
-		Main_Prog_LED_Stat();
+	//if (arQ.Flg.BLE_MODE_FLAG)
+		//BLE_Mode_LED_Stat();
+	//else
+	Main_Prog_LED_Stat();
 }
 
 
-void Check_Primary_Board(void)
+/*void Check_Primary_Board(void)
 {
 	Clear_UART_Buffers();
 
   HAL_UART_Receive_IT(&huart1, &rxChar, 1);
   xprintf(MCU, "Check_MCU");
-
   HAL_Delay(1000);
 
   if (strcmp(arQ.Buf.UART_DATA, "PMCU_OK") == 0)
@@ -631,7 +628,7 @@ void Check_Primary_Board(void)
   	arQ.Flg.PMCU_STAT_FLAG_OK = false;
 
   Clear_UART_Buffers();
-}
+}*/
 
 
 void Log_Error(char *pBuffer)
@@ -759,9 +756,6 @@ void WatchDog_Reset(void)
 }
 
 
-
-
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	arQ.Flg.UART_SERIAL_FLAG = true;
@@ -770,28 +764,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	HAL_UART_Receive_IT(&huart1, &rxChar, 1);
 }
 
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if (htim == &htim16)
-	{
-		USBSerial_Interrupt_Check();
-		if (arQ.Flg.BLE_MODE_FLAG == true)
-		{
-			xprintf(PC, "BLE Mode Running\r\n");
-			//sprintf(arQ.Buf.PC_MSG, "VBAT: 12.56\r\n");
-			//SPP_Update_Char(1, (uint8_t *)&arQ.Buf.PC_MSG[0]);
-		}
-	}
-
-
-	else if (htim == &htim17) // every 500ms
-	{
-		Count_arQ_Time();
-		Blink_LED();
-	}
-
-}
 /* USER CODE END 4 */
 
 /**
