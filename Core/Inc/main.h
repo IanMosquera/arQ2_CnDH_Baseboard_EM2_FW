@@ -135,6 +135,7 @@ void WatchDog_Reset(void);
 #define GPIO2_GPIO_Port GPIOB
 #define SW1_Pin GPIO_PIN_4
 #define SW1_GPIO_Port GPIOE
+#define SW1_EXTI_IRQn EXTI4_IRQn
 #define GPIO3_Pin GPIO_PIN_4
 #define GPIO3_GPIO_Port GPIOB
 

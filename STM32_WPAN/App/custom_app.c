@@ -111,7 +111,7 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
 
     case CUSTOM_STM_TX_WRITE_NO_RESP_EVT:
       /* USER CODE BEGIN CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
-
+    	pNotification->DataTransfered.pPayload[pNotification->DataTransfered.Length] = '\0';
       /* USER CODE END CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
       break;
 
@@ -201,8 +201,18 @@ void Custom_APP_Init(void)
 /* USER CODE BEGIN FD */
 void Read_Data(void)
 {
-	sprintf(SystemMessage, "VBAT: 12.56\r\n");
+	sprintf(SystemMessage, "VBAT: 12.56");
 	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&SystemMessage[0]);
+}
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin == SW1_Pin)
+  {
+  	sprintf(SystemMessage, "VBAT: 12.56\r\n");
+  	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&SystemMessage[0]);
+  }
 }
 /* USER CODE END FD */
 

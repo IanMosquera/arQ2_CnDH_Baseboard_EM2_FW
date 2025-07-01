@@ -40,6 +40,8 @@
 
 #include "InterruptSerial.h"
 #include "InterruptTimer.h"
+
+//#include "custom_stm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,8 +61,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 IPCC_HandleTypeDef hipcc;
-
-IWDG_HandleTypeDef hiwdg;
 
 QSPI_HandleTypeDef hqspi;
 
@@ -92,7 +92,6 @@ static void MX_TIM16_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_QUADSPI_Init(void);
-static void MX_IWDG_Init(void);
 static void MX_RF_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -147,7 +146,6 @@ int main(void)
   MX_TIM17_Init();
   MX_USART1_UART_Init();
   MX_QUADSPI_Init();
-  MX_IWDG_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
@@ -271,35 +269,6 @@ static void MX_IPCC_Init(void)
   /* USER CODE BEGIN IPCC_Init 2 */
 
   /* USER CODE END IPCC_Init 2 */
-
-}
-
-/**
-  * @brief IWDG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_IWDG_Init(void)
-{
-
-  /* USER CODE BEGIN IWDG_Init 0 */
-
-  /* USER CODE END IWDG_Init 0 */
-
-  /* USER CODE BEGIN IWDG_Init 1 */
-
-  /* USER CODE END IWDG_Init 1 */
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-  hiwdg.Init.Window = 3033;
-  hiwdg.Init.Reload = 3033;
-  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN IWDG_Init 2 */
-
-  /* USER CODE END IWDG_Init 2 */
 
 }
 
@@ -561,9 +530,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : SW1_Pin */
   GPIO_InitStruct.Pin = SW1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SW1_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -781,9 +754,8 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 
 void WatchDog_Reset(void)
 {
-	//xprintf(PC, "Resetting Watchdog\r\n");
 	HAL_Delay(10);
-	HAL_IWDG_Refresh(&hiwdg);
+	//HAL_IWDG_Refresh(&hiwdg);
 }
 
 
@@ -807,8 +779,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		if (arQ.Flg.BLE_MODE_FLAG == true)
 		{
 			xprintf(PC, "BLE Mode Running\r\n");
+			//sprintf(arQ.Buf.PC_MSG, "VBAT: 12.56\r\n");
+			//SPP_Update_Char(1, (uint8_t *)&arQ.Buf.PC_MSG[0]);
 		}
 	}
+
+
 	else if (htim == &htim17) // every 500ms
 	{
 		Count_arQ_Time();
