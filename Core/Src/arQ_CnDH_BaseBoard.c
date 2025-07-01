@@ -681,6 +681,12 @@ void Reset_Time_To_Get_Data_Flags(void)
 }
 
 
+void Read_Power(void)
+{
+	sprintf(arQ.Pwr.EXTVBATSTR, "12.65");
+}
+
+
 bool Command_Not_Yet_Sent_To_PMCU(void)
 {
 	if (arQ.Flg.COMMAND_SENT == false)

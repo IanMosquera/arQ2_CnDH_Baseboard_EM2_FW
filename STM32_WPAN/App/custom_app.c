@@ -76,6 +76,9 @@ uint16_t Connection_Handle;
 extern TIM_HandleTypeDef htim16;
 
 extern bool BLE_MODE;
+
+char SystemMessage[255];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,7 +87,7 @@ static void Custom_Rx_Update_Char(void);
 static void Custom_Rx_Send_Notification(void);
 
 /* USER CODE BEGIN PFP */
-
+void Read_Data(void);
 /* USER CODE END PFP */
 
 /* Functions Definition ------------------------------------------------------*/
@@ -188,13 +191,19 @@ void Custom_APP_Notification(Custom_App_ConnHandle_Not_evt_t *pNotification)
 void Custom_APP_Init(void)
 {
   /* USER CODE BEGIN CUSTOM_APP_Init */
+	UTIL_SEQ_RegTask(1 << CFG_TASK_READ_DATA, UTIL_SEQ_RFU, Read_Data);
+
 	HAL_TIM_Base_Start_IT(&htim16);
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }
 
 /* USER CODE BEGIN FD */
-
+void Read_Data(void)
+{
+	sprintf(SystemMessage, "VBAT: 12.56\r\n");
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&SystemMessage[0]);
+}
 /* USER CODE END FD */
 
 /*************************************************************

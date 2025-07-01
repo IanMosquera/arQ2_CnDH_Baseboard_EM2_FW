@@ -110,7 +110,36 @@ do {\
 #define COPY_RX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x02,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
 
 /* USER CODE BEGIN PF */
+tBleStatus SPP_Update_Char(Custom_STM_Char_Opcode_t CharOpcode,  uint8_t *pPayload){
 
+	tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+
+	uint8_t size;
+	size = 0;
+	while(pPayload[size] != '\0') size++;	/*Compute payload string size until \0*/
+
+	switch (CharOpcode){
+		case CUSTOM_STM_RX:
+			/*Updated Characteristic TX*/
+			ret = aci_gatt_update_char_value(CustomContext.CustomSppHdle,
+	                                     CustomContext.CustomRxHdle,
+	                                     0, /* charValOffset */
+										                   size, /* charValueLen */
+	                                     (uint8_t *)  pPayload);
+
+			if (ret != BLE_STATUS_SUCCESS){
+				APP_DBG_MSG("  Fail   : aci_gatt_update_char_value SPP_RX command, result : 0x%x \n\r", ret);
+			}
+			else{
+				APP_DBG_MSG("  Success: aci_gatt_update_char_value SPP_RX command\n\r");
+			}
+			break;
+
+	    default:
+	    	break;
+	  }
+	return ret;
+}
 /* USER CODE END PF */
 
 /**

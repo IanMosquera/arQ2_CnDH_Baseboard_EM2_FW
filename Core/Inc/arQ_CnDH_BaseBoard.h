@@ -249,6 +249,7 @@ typedef struct
 
 bool Command_Not_Yet_Sent_To_PMCU(void);
 void Get_Power_Data(void);
+void Read_Power(void);
 void Reset_Time_To_Get_Data_Flags(void);
 bool Time_To_Get_Data_From_PMCU(void);
 void xprintf(uint8_t stream, char *FormatString, ...);
