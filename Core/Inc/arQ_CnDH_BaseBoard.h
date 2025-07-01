@@ -46,7 +46,7 @@ typedef struct
 	char PowerBoardConfig[3];
 	char Password[10];
 
-	uint8_t SendingTime;
+	uint8_t GetDataTime;
 	uint8_t SleepTime;
 }systemConfig_t;
 
@@ -166,6 +166,9 @@ typedef struct
 	bool DATA_TAKEN;
 	bool COMMAND_SENT;
 	bool RETURN_FLAG;
+	bool MAIN_MODE_FLAG;
+	bool BLE_MODE_FLAG;
+	bool BLE_INIT_FLAG;
 }flag_t;
 
 
@@ -243,9 +246,11 @@ typedef struct
 //void Enable_Normal_Power_Mode(void);
 //void Trigger_Lora_Transmit_Pin(void);
 //bool Data_Not_Yet_Taken(void);
-bool Time_To_Get_Data_From_PMCU(void);
+
 bool Command_Not_Yet_Sent_To_PMCU(void);
 void Get_Power_Data(void);
+void Reset_Time_To_Get_Data_Flags(void);
+bool Time_To_Get_Data_From_PMCU(void);
 void xprintf(uint8_t stream, char *FormatString, ...);
 
 #endif /* INC_ARQ_CNDH_BASEBOARD_H_ */

@@ -21,7 +21,7 @@ void DateTime_Init(void)
 	arQ.DTm.Year_Prev = 24;
 	arQ.DTm.Hour_Old 	= 0;
 
-	arQ.Cfg.SendingTime = 15;
+	arQ.Cfg.GetDataTime = 2;
 
 	arQ.Flg.THESAMEMINUTE_FLAG 	= false;
 	arQ.DTm.ResetCPU 						= false;
@@ -104,7 +104,7 @@ void Count_One_Sec(void)
 
 bool Time_To_Get_Sensor_Data(void)
 {
-	if ((arQ.DTm.Min % arQ.Cfg.SendingTime) == 0)
+	if ((arQ.DTm.Min % arQ.Cfg.GetDataTime) == 0)
 		return true;
 	else
 	{

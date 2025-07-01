@@ -78,9 +78,6 @@ uint8_t arQ_tmi17_ctr;
 
 char strDisplay[250];
 
-bool BLE_MODE;
-bool BLE_INIT;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -173,7 +170,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 
-  	if (BLE_MODE == false)
+  	if (arQ.Flg.BLE_MODE_FLAG == false)
   		Main_Program();
   	else
   		BLE_Program();
@@ -556,16 +553,16 @@ void ArQ_ShowDateTime(void)
 	xprintf(PC, "arQ DT:%02d/%02d/%02d,%02d:%02d:%02d\r\n",
 				arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
 				arQ.DTm.Hour, arQ.DTm.Min, arQ.DTm.Sec);
-	arQ.Ctr.PROG_CTR = 0;
+	// arQ.Ctr.PROG_CTR = 0;
 }
 
 
 void ArQ_Sys_Init(void)
 {
-  BLE_MODE = false;
-  BLE_INIT = false;
+  arQ.Flg.BLE_MODE_FLAG = false;
+  arQ.Flg.BLE_INIT_FLAG = false;
 
-  arQ.Cfg.SendingTime = 2;
+  arQ.Cfg.GetDataTime = 2;
 
   arQ.DTm.ctr = 0;
 
@@ -578,18 +575,31 @@ void ArQ_Sys_Init(void)
 
 void BLE_Mode_LED_Stat(void)
 {
-	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+	arQ.Ctr.LED_CTR++;
+	if (arQ.Ctr.LED_CTR == 10)
+		HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+	else if (arQ.Ctr.LED_CTR >= 20)
+		arQ.Ctr.LED_CTR = 0;
 }
 
 
 void BLE_Program(void)
 {
-	if (BLE_INIT == false)
+	if (arQ.Flg.BLE_INIT_FLAG == false)
 	{
 		MX_APPE_Init();
-		BLE_INIT = true;
+		arQ.Flg.BLE_INIT_FLAG = true;
 	}
 	MX_APPE_Process();
+}
+
+
+void Blink_LED(void)
+{
+	if (arQ.Flg.BLE_MODE_FLAG)
+		BLE_Mode_LED_Stat();
+	else
+		Main_Prog_LED_Stat();
 }
 
 
@@ -637,21 +647,21 @@ void Main_Program(void)
 		}
 		//Send Command
 	}
-
-	Main_Prog_LED_Stat();
+	HAL_Delay(500);
 }
 
 
 void Main_Prog_LED_Stat(void)
 {
+	arQ.Ctr.LED_CTR++;
 	if (arQ.Ctr.LED_CTR < 20)
 	{
-		if (arQ.Ctr.LED_CTR == 0) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-		if (arQ.Ctr.LED_CTR == 4) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-		if (arQ.Ctr.LED_CTR == 5) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-		if (arQ.Ctr.LED_CTR == 9) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		if (arQ.Ctr.LED_CTR == 1) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 5) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		if (arQ.Ctr.LED_CTR == 6) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		if (arQ.Ctr.LED_CTR == 10) HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
 	}
-	else
+	else if (arQ.Ctr.LED_CTR >= 20)
 		arQ.Ctr.LED_CTR = 0;
 }
 
@@ -712,12 +722,12 @@ void USBSerial_Interrupt_Check(void)
 	{
 		if (strcmp(arQ.Buf.USB_BUFFER, "MODE_BLE\r\n") == 0)
 		{
-			BLE_MODE = true;
+			arQ.Flg.BLE_MODE_FLAG = true;
 			Clear_USB_Buffers();
 		}
 		else if(strcmp(arQ.Buf.USB_BUFFER, "MODE_MAIN\r\n") == 0)
 		{
-			BLE_MODE = false;
+			arQ.Flg.BLE_MODE_FLAG = false;
 			Clear_USB_Buffers();
 		}
 	}
@@ -759,17 +769,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		USBSerial_Interrupt_Check();
 
-		if (BLE_MODE == true)
+		if (arQ.Flg.BLE_MODE_FLAG == true)
 		{
-			BLE_Mode_LED_Stat();
 			xprintf(PC, "BLE Mode Running\r\n");
 		}
 	}
-	else if (htim == &htim17) // every 50ms
+	else if (htim == &htim17) // every 500ms
 	{
 		Count_arQ_Time();
-		arQ.Ctr.PROG_CTR++;
-		arQ.Ctr.LED_CTR++;
+		Blink_LED();
 	}
 
 }

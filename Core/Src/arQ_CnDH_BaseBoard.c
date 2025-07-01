@@ -664,14 +664,20 @@ bool Data_Not_Yet_Taken(void)
 
 bool Time_To_Get_Data_From_PMCU(void)
 {
-	if ((arQ.DTm.Min % arQ.Cfg.SendingTime) == 0)
+	if ((arQ.DTm.Min % arQ.Cfg.GetDataTime) == 0)
 		return true;
 	else
 	{
-		arQ.Flg.DATA_TAKEN = false;
-		arQ.Flg.COMMAND_SENT = false;
+		Reset_Time_To_Get_Data_Flags();
 		return false;
 	}
+}
+
+
+void Reset_Time_To_Get_Data_Flags(void)
+{
+	arQ.Flg.DATA_TAKEN = false;
+	arQ.Flg.COMMAND_SENT = false;
 }
 
 
@@ -688,7 +694,7 @@ void Get_Power_Data(void)
 {
 	xprintf(MCU, "POWER_DATA");
 	arQ.Flg.COMMAND_SENT = true;
-	HAL_Delay(1000);
+	HAL_Delay(200);
 
 	xprintf(PC, "%s\r\n", arQ.Buf.UART_DATA);
 	Clear_UART_Buffers();

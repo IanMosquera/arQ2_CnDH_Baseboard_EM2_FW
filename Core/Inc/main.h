@@ -104,6 +104,7 @@ void ArQ_ShowDateTime(void);
 void ArQ_Sys_Init(void);
 void BLE_Mode_LED_Stat(void);
 void BLE_Program(void);
+void Blink_LED(void);
 void Check_Primary_Board(void);
 void Log_Error(char *pBuffer);
 void Main_Program(void);
