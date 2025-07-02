@@ -95,10 +95,12 @@ static void Custom_Rx_Update_Char(void);
 static void Custom_Rx_Send_Notification(void);
 
 /* USER CODE BEGIN PFP */
+void BLE_Print_Date_Time(void);
 void Check_Primary_Board(void);
 void Count_Program_Counter(void);
 void Five_Second_Routine(void);
 void Main_Routine(void);
+void Minute_Routine(void);
 void One_Second_Routine(void);
 void Read_Data(void);
 void Send_String_Over_BLE(void);
@@ -220,21 +222,26 @@ void Custom_APP_Init(void)
 }
 
 /* USER CODE BEGIN FD */
-void Read_Data(void)
+
+void BLE_Print_Date_Time(void)
 {
-	//sprintf(SystemMessage, "VBAT: 12.56");
-	//SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&SystemMessage[0]);
+	bprintf("%02d/%02d/%02d, %02d:%02d %s\r\n",
+			arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+		   (arQ.DTm.Hour < 13) ? (arQ.DTm.Hour):(arQ.DTm.Hour-12), arQ.DTm.Min, (arQ.DTm.Hour < 13) ? "AM":"PM");
 }
+
+
+
 
 
 void Check_Primary_Board(void)
 {
 	sprintf(arQ.Buf.DESIRED_RESPONSE, "PMCU_OK");
 	Clear_UART_Buffers();
-
 	bprintf("Checking PMCU: ");
 	//HAL_Delay(200);
 
+	xprintf(MCU, "CHECK_MCU");
 	if (Get_Serial_Response())
 		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
 	else
@@ -278,12 +285,9 @@ void Main_Routine(void)
 {
 	bprintf("\r\n****************  Main Routine  ****************\r\n");
 
-	bprintf("%02d/%02d/%02d, %02d:%02d %s\r\n",
-			arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
-		   (arQ.DTm.Hour < 13) ? (arQ.DTm.Hour):(arQ.DTm.Hour-12), arQ.DTm.Min, (arQ.DTm.Hour < 13) ? "AM":"PM");
-
-
+	BLE_Print_Date_Time();
 	Check_Primary_Board();
+	Read_Data();
 
 	arQ.Flg.LOCK_5S_ROUTINE = false;
 
@@ -300,6 +304,44 @@ void Minute_Routine(void)
 		//Lock 5 Sec Routine until Main task is done
 		arQ.Flg.LOCK_5S_ROUTINE = true;
 		UTIL_SEQ_SetTask(1 << CFG_TASK_MAIN, CFG_SCH_PRIO_0);
+	}
+}
+
+
+
+
+
+void Read_Data(void)
+{
+	sprintf(arQ.Buf.DESIRED_RESPONSE, "#P");
+	Clear_UART_Buffers();
+	bprintf("Reading Power Data: ");
+
+	xprintf(MCU, "READ_POWER");
+	if (Get_Serial_Response())
+	{
+		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
+		// Save values somewhere
+	}
+	else
+	{
+		bprintf("Power Data Error!\r\n");
+	}
+
+
+	sprintf(arQ.Buf.DESIRED_RESPONSE, "#S");
+	Clear_UART_Buffers();
+	bprintf("Reading Sensor Data: ");
+
+	xprintf(MCU, "READ_SENSOR");
+	if (Get_Serial_Response())
+	{
+		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
+		// Save values somewhere
+	}
+	else
+	{
+		bprintf("Sensor Data Error!\r\n");
 	}
 }
 
