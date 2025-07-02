@@ -150,19 +150,19 @@ typedef struct
 
 typedef struct
 {
-	bool EXT_FLAG;
+	//bool EXT_FLAG;
 	bool USB_SERIAL_FLAG;
 	bool UART_SERIAL_FLAG;
 	bool PMCU_STAT_FLAG_OK;
-	bool CUM_RAIN_RESET_FLAG;
+	//bool CUM_RAIN_RESET_FLAG;
 	bool MIDNIGHT_RESET_LTE_FLAG;
-	bool PROC_START;
-	bool PROC_END;
-	bool SENSOR_DEBUG;
-	bool SENDING_FLAG;
+	//bool PROC_START;
+	//bool PROC_END;
+	//bool SENSOR_DEBUG;
+	//bool SENDING_FLAG;
 	bool SYNC_FLAG;
 	bool TEST_FLAG;
-	bool REPLYTOSENDER;
+	//bool REPLYTOSENDER;
 	bool THESAMEMINUTE_FLAG;
 	bool DATA_TAKEN;
 	bool COMMAND_SENT;
@@ -170,6 +170,7 @@ typedef struct
 	bool MAIN_MODE_FLAG;
 	bool BLE_MODE_FLAG;
 	bool BLE_INIT_FLAG;
+	bool LOCK_5S_ROUTINE;
 }flag_t;
 
 
