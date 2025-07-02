@@ -77,6 +77,7 @@ uint8_t UpdateCharData[512];
 uint8_t NotifyCharData[512];
 uint16_t Connection_Handle;
 /* USER CODE BEGIN PV */
+
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
 
@@ -95,8 +96,13 @@ static void Custom_Rx_Send_Notification(void);
 
 /* USER CODE BEGIN PFP */
 void Check_Primary_Board(void);
+void Count_Program_Counter(void);
+void Five_Second_Routine(void);
+void Main_Routine(void);
+void One_Second_Routine(void);
 void Read_Data(void);
-static void SW1_Pressed(void);
+void Send_String_Over_BLE(void);
+void SW1_Pressed(void);
 void bprintf(uint8_t stream, char *FormatString, ...);
 /* USER CODE END PFP */
 
@@ -201,9 +207,14 @@ void Custom_APP_Notification(Custom_App_ConnHandle_Not_evt_t *pNotification)
 void Custom_APP_Init(void)
 {
   /* USER CODE BEGIN CUSTOM_APP_Init */
-	UTIL_SEQ_RegTask(1 << CFG_TASK_READ_DATA,		UTIL_SEQ_RFU, Read_Data);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_READ_DATA,	UTIL_SEQ_RFU, Read_Data);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_CHECK_PMCU,	UTIL_SEQ_RFU, Check_Primary_Board);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_MAIN,		UTIL_SEQ_RFU, Main_Routine);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_SEND_STR,	UTIL_SEQ_RFU, Send_String_Over_BLE);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_SW1_PRESSED, UTIL_SEQ_RFU, SW1_Pressed);
+
+	sprintf(arQ.Buf.PC_MSG, "Sample string");
+
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }
@@ -220,29 +231,103 @@ void Check_Primary_Board(void)
 {
 	Clear_UART_Buffers();
 
-  HAL_UART_Receive_IT(&huart1, &rxChar, 1);
-  xprintf(MCU, "Check_MCU");
-  //HAL_Delay(200);
+	HAL_UART_Receive_IT(&huart1, &rxChar, 1);
+	xprintf(MCU, "Check_MCU");
+	//HAL_Delay(200);
 
-  if (strcmp(arQ.Buf.UART_DATA, "PMCU_OK") == 0)
-  {
-  	arQ.Flg.PMCU_STAT_FLAG_OK = true;
-  	xprintf(PC, "%s\r\n", arQ.Buf.UART_DATA);
-  }
-  else
-  {
-  	xprintf(PC, "PMCU Error\r\n");
-  	//bprintf(BLE, "PMCU Error\r\n");
-  	arQ.Flg.PMCU_STAT_FLAG_OK = false;
-  }
+	if (strcmp(arQ.Buf.UART_DATA, "PMCU_OK") == 0)
+	{
+	arQ.Flg.PMCU_STAT_FLAG_OK = true;
+	xprintf(PC, "%s\r\n", arQ.Buf.UART_DATA);
+	}
+	else
+	{
+	xprintf(PC, "PMCU Error\r\n");
+	//bprintf(BLE, "PMCU Error\r\n");
+	arQ.Flg.PMCU_STAT_FLAG_OK = false;
+	}
 
-  Clear_UART_Buffers();
+	Clear_UART_Buffers();
+	}
+
+
+
+
+
+void Count_Program_Counter(void)
+{
+	if (arQ.Ctr.PROG_CTR >= 2401)
+		arQ.Ctr.PROG_CTR = 0;
+	else
+		arQ.Ctr.PROG_CTR++;
 }
 
-static void SW1_Pressed(void)
+
+
+
+
+void Five_Second_Routine(void)
 {
-	sprintf(arQ.Buf.PC_MSG, "VBAT: 12.56\r\n");
+	if ((arQ.Ctr.PROG_CTR % 100) == 0)
+	{
+		bprintf(BLE, "5 second routine\r\n");
+	}
+}
+
+
+
+
+
+void Main_Routine(void)
+{
+	sprintf(arQ.Buf.PC_MSG, "Date and Time: %02d/%02d/%02d,%02d:%02d:00\r\n",
+			arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+			arQ.DTm.Hour, arQ.DTm.Min);
 	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+
+}
+
+
+
+
+
+void Minute_Routine(void)
+{
+	if ((arQ.Ctr.PROG_CTR % 1200) == 0)
+	{
+		//UTIL_SEQ_SetTask(1 << CFG_TASK_CHECK_PMCU, CFG_SCH_PRIO_0);
+		UTIL_SEQ_SetTask(1 << CFG_TASK_MAIN, CFG_SCH_PRIO_0);
+	}
+}
+
+
+
+
+
+void One_Second_Routine(void)
+{
+	if ((arQ.Ctr.PROG_CTR % 20) == 0)
+	{
+		Count_arQ_Time();
+	}
+}
+
+
+
+
+
+void Send_String_Over_BLE(void)
+{
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+}
+
+
+
+
+
+void SW1_Pressed(void)
+{
+	bprintf(BLE, "Switch pressed\r\n");
 }
 
 
@@ -267,23 +352,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	if (htim == &htim17) // every 50ms
 	{
-		if (arQ.Ctr.PROG_CTR >= 250)
-			arQ.Ctr.PROG_CTR = 0;
-		else
-			arQ.Ctr.PROG_CTR++;
+		Count_Program_Counter();
 
-		if ((arQ.Ctr.PROG_CTR % 20) == 0) // every 1 Sec
-		{
-			Count_One_Sec();
-		}
-
-		if ((arQ.Ctr.PROG_CTR % 100) == 0) // every 5 Sec
-			UTIL_SEQ_SetTask(1 << CFG_TASK_CHECK_PMCU, CFG_SCH_PRIO_0);
+		One_Second_Routine();
+		Five_Second_Routine();
+		Minute_Routine();
 
 		Blink_LED();
-
 	}
 }
+
+
+
+
+
+
+
+
 
 void bprintf(uint8_t stream, char *FormatString, ...)
 {
@@ -291,7 +376,7 @@ void bprintf(uint8_t stream, char *FormatString, ...)
 	char *sval;
 	int  ival;
 	float fval;
-	char tempSTR[100];
+	//char tempSTR[100]; replaced with global arQ.Buf.PC_MSG buffer
 	char cdcSTR[100];
 	char format[10];
 	int8_t i, j, x;
@@ -302,16 +387,17 @@ void bprintf(uint8_t stream, char *FormatString, ...)
 
 	for (i = 0, j = 0; j < len; i++, j++)
 	{
-		tempSTR[i] = FormatString[j];
+		arQ.Buf.PC_MSG[i] = FormatString[j];
 
 		if (FormatString[j] == '%')
 		{
-			tempSTR[i] = '\0';
+			arQ.Buf.PC_MSG[i] = '\0';
 			j++;
 
-			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-			else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&tempSTR[0]);
+			if (stream == PC) CDC_Transmit_FS((uint8_t *)arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG));
+			else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG), HAL_MAX_DELAY);
+			//else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+			else if (stream == BLE) UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
 
 			HAL_Delay(10);
 			x = 0;
@@ -329,7 +415,8 @@ void bprintf(uint8_t stream, char *FormatString, ...)
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
 				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
-				else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&tempSTR[0]);
+				//else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+				else if (stream == BLE) UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
 			}
 			else if (FormatString[j] == 'd')
 			{
@@ -340,7 +427,8 @@ void bprintf(uint8_t stream, char *FormatString, ...)
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
 				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-				else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&tempSTR[0]);
+				//else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+				else if (stream == BLE) UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
 			}
 			else if (FormatString[j] == 'f')
 			{
@@ -350,16 +438,18 @@ void bprintf(uint8_t stream, char *FormatString, ...)
 				sprintf(cdcSTR, format, fval);
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
 				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-				else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&tempSTR[0]);
+				//else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+				else if (stream == BLE) UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
 			}
 			HAL_Delay(10);
 			i = -1;
 		}
 	}
-	tempSTR[i] = '\0';
-	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-	else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&tempSTR[0]);
+	arQ.Buf.PC_MSG[i] = '\0';
+	if (stream == PC) CDC_Transmit_FS((uint8_t *)arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG));
+	else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)arQ.Buf.PC_MSG, strlen(arQ.Buf.PC_MSG), HAL_MAX_DELAY);
+	//else if (stream == BLE) SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
+	else if (stream == BLE) UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
 	va_end(args);
 }
 /* USER CODE END FD */

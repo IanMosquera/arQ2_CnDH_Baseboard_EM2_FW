@@ -198,7 +198,7 @@ typedef struct
 	uint8_t WRITE2_CNTR;
 	uint8_t READ_CNTR;
 	uint8_t LED_CTR;
-	uint8_t PROG_CTR;
+	uint16_t PROG_CTR;
 }Counter_t;
 
 typedef struct
