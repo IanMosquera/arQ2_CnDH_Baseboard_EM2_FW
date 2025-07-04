@@ -96,7 +96,7 @@ static void Custom_Rx_Send_Notification(void);
 /* USER CODE BEGIN PFP */
 void Check_Primary_Board(void);
 void Read_Data(void);
-static void SW1_Pressed(void);
+static void BLE_Send_String(void);
 void bprintf(uint8_t stream, char *FormatString, ...);
 /* USER CODE END PFP */
 
@@ -203,7 +203,7 @@ void Custom_APP_Init(void)
   /* USER CODE BEGIN CUSTOM_APP_Init */
 	UTIL_SEQ_RegTask(1 << CFG_TASK_READ_DATA,		UTIL_SEQ_RFU, Read_Data);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_CHECK_PMCU,	UTIL_SEQ_RFU, Check_Primary_Board);
-	UTIL_SEQ_RegTask(1 << CFG_TASK_SW1_PRESSED, UTIL_SEQ_RFU, SW1_Pressed);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_SEND_STR, 		UTIL_SEQ_RFU, BLE_Send_String);
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }
@@ -239,7 +239,7 @@ void Check_Primary_Board(void)
   Clear_UART_Buffers();
 }
 
-static void SW1_Pressed(void)
+static void BLE_Send_String(void)
 {
 	sprintf(arQ.Buf.PC_MSG, "VBAT: 12.56\r\n");
 	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)&arQ.Buf.PC_MSG[0]);
@@ -250,7 +250,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if(GPIO_Pin == SW1_Pin)
   {
-  	UTIL_SEQ_SetTask(1 << CFG_TASK_SW1_PRESSED, CFG_SCH_PRIO_0);
+  	sprintf(arQ.Buf.PC_MSG, "SW1 Pressed\r\n");
+  	UTIL_SEQ_SetTask(1 << CFG_TASK_SEND_STR, CFG_SCH_PRIO_0);
   }
 }
 
