@@ -154,7 +154,7 @@ int main(void)
   RTC_Init();
   ArQ_DateTime_Init();
   ArQ_Sys_Init();
-  Check_Primary_Board();
+  //Check_Primary_Board();
 
   /* USER CODE END 2 */
 
@@ -546,7 +546,7 @@ void ArQ_DateTime_Init(void)
 {
 	arQ.DTm.Sec = 50;
 	arQ.DTm.Min = 15;
-	arQ.DTm.Hour = 5;
+	arQ.DTm.Hour = 15;
 	arQ.DTm.Days = 26;
 	arQ.DTm.Month = 6;
 	arQ.DTm.Year = 25;

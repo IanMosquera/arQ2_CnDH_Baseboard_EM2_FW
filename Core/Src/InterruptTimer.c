@@ -41,19 +41,8 @@ uint8_t IS_LEAP(uint8_t Year)
 		return 0;
 }
 
-void Count_arQ_Time(void)
-{
-	//arQ.Ctr.INTERRUPTCHECKER = 0;
-	if (arQ.DTm.ctr >= 20) // 20 x 50ms = 1sec
-	{
-		Count_One_Sec();
-		arQ.DTm.ctr = 0;
-	}
-	else
-		arQ.DTm.ctr++;
-}
 
-void Count_One_Sec(void)
+void Count_arQ_Time(void)
 {
 	if (++arQ.DTm.Sec > 59)
 	{
