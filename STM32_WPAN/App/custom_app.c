@@ -98,12 +98,14 @@ static void Custom_Rx_Send_Notification(void);
 /* USER CODE BEGIN PFP */
 void Print_Date_Time(void);
 void Check_Primary_Board(void);
+void Count_PMCU_Reset(void);
 void Count_Program_Counter(void);
 void Five_Second_Routine(void);
 void Main_Routine(void);
 void Minute_Routine(void);
 void One_Second_Routine(void);
 void Read_Data(void);
+void Reset_PMCU(void);
 static void BLE_Send_String(void);
 void Send_String_Over_BLE(void);
 void Sync_DateTime_From_PMCU(void);
@@ -213,12 +215,9 @@ void Custom_APP_Notification(Custom_App_ConnHandle_Not_evt_t *pNotification)
 void Custom_APP_Init(void)
 {
   /* USER CODE BEGIN CUSTOM_APP_Init */
-	UTIL_SEQ_RegTask(1 << CFG_TASK_READ_DATA,	UTIL_SEQ_RFU, Read_Data);
-	UTIL_SEQ_RegTask(1 << CFG_TASK_CHECK_PMCU,	UTIL_SEQ_RFU, Check_Primary_Board);
-	UTIL_SEQ_RegTask(1 << CFG_TASK_SEND_STR, 		UTIL_SEQ_RFU, BLE_Send_String);
+
 	UTIL_SEQ_RegTask(1 << CFG_TASK_MAIN,		UTIL_SEQ_RFU, Main_Routine);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_SEND_STR,	UTIL_SEQ_RFU, Send_String_Over_BLE);
-	UTIL_SEQ_RegTask(1 << CFG_TASK_SW1_PRESSED, UTIL_SEQ_RFU, SW1_Pressed);
 
 	sprintf(arQ.Buf.PC_MSG, "Sample string");
 
@@ -273,9 +272,18 @@ void Check_Primary_Board(void)
 	Clear_UART_Buffers();
 }
 
-static void BLE_Send_String(void)
-{
 
+
+
+
+void Count_PMCU_Reset(void)
+{
+	if (arQ.Ctr.PMCU_RST_CTR == 0)
+		arQ.Ctr.PMCU_RST_CTR++;
+	else if (arQ.Ctr.PMCU_RST_CTR >= 2) // after 2 seconds turn on thge PMCU
+		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+	else
+		arQ.Ctr.PMCU_RST_CTR = 1;
 }
 
 
@@ -315,6 +323,7 @@ void Main_Routine(void)
 	Sync_DateTime_From_PMCU();
 	Print_Date_Time();
 	Check_Primary_Board();
+	Reset_PMCU();
 	Read_Data();
 
 	arQ.Flg.LOCK_5S_ROUTINE = false;
@@ -382,12 +391,24 @@ void Read_Data(void)
 
 
 
+void Reset_PMCU(void)
+{
+	if (!arQ.Flg.PMCU_STAT_FLAG_OK)
+	{
+		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
+		arQ.Ctr.PMCU_RST_CTR = 0;
+	}
+}
+
+
+
 
 void One_Second_Routine(void)
 {
 	if ((arQ.Ctr.PROG_CTR % 20) == 0)
 	{
 		Count_arQ_Time();
+		Count_PMCU_Reset();
 	}
 }
 

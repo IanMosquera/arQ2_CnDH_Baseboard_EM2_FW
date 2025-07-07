@@ -139,7 +139,7 @@ typedef struct
 
 	float VBAT;
 	float BoardCurrent;
-	float	PCDMVoltage;
+	float PCDMVoltage;
 	float PCDMCurrent;
 	float ExtVBAT;
 	float VBoost1;
@@ -154,6 +154,7 @@ typedef struct
 	bool USB_SERIAL_FLAG;
 	bool UART_SERIAL_FLAG;
 	bool PMCU_STAT_FLAG_OK;
+	bool PMCU_RST;
 	//bool CUM_RAIN_RESET_FLAG;
 	bool MIDNIGHT_RESET_LTE_FLAG;
 	//bool PROC_START;
@@ -200,6 +201,7 @@ typedef struct
 	uint8_t READ_CNTR;
 	uint8_t LED_CTR;
 	uint16_t PROG_CTR;
+	uint8_t PMCU_RST_CTR;
 }Counter_t;
 
 typedef struct
