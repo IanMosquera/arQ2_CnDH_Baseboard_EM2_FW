@@ -32,6 +32,7 @@
 #include "usbd_cdc_if.h"
 
 #include "arQ_CnDH_BaseBoard.h"
+#include "DateTime.h"
 #include "InterruptTimer.h"
 #include "InterruptSerial.h"
 /* USER CODE END Includes */
@@ -95,7 +96,7 @@ static void Custom_Rx_Update_Char(void);
 static void Custom_Rx_Send_Notification(void);
 
 /* USER CODE BEGIN PFP */
-void BLE_Print_Date_Time(void);
+void Print_Date_Time(void);
 void Check_Primary_Board(void);
 void Count_Program_Counter(void);
 void Five_Second_Routine(void);
@@ -105,6 +106,7 @@ void One_Second_Routine(void);
 void Read_Data(void);
 static void BLE_Send_String(void);
 void Send_String_Over_BLE(void);
+void Sync_DateTime_From_PMCU(void);
 void SW1_Pressed(void);
 void bprintf(char *FormatString, ...);
 //>>>>>>> 1cd6e066708cafdcdaf791c449309465654d9441
@@ -226,11 +228,19 @@ void Custom_APP_Init(void)
 
 /* USER CODE BEGIN FD */
 
-void BLE_Print_Date_Time(void)
+void Print_Date_Time(void)
 {
+	xprintf(PC, "%02d/%02d/%02d, %02d:%02d %s\r\n",
+				arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
+			   (arQ.DTm.Hour < 13) ? (arQ.DTm.Hour):(arQ.DTm.Hour-12),
+			    arQ.DTm.Min,
+			   (arQ.DTm.Hour < 13) ? "AM":"PM");
+
 	bprintf("%02d/%02d/%02d, %02d:%02d %s\r\n",
 			arQ.DTm.Year, arQ.DTm.Month, arQ.DTm.Days,
-		   (arQ.DTm.Hour < 13) ? (arQ.DTm.Hour):(arQ.DTm.Hour-12), arQ.DTm.Min, (arQ.DTm.Hour < 13) ? "AM":"PM");
+		   (arQ.DTm.Hour < 13) ? (arQ.DTm.Hour):(arQ.DTm.Hour-12),
+			arQ.DTm.Min,
+		   (arQ.DTm.Hour < 13) ? "AM":"PM");
 }
 
 
@@ -241,14 +251,24 @@ void Check_Primary_Board(void)
 {
 	sprintf(arQ.Buf.DESIRED_RESPONSE, "PMCU_OK");
 	Clear_UART_Buffers();
+
+	xprintf(PC, "Checking PMCU: ");
 	bprintf("Checking PMCU: ");
 	//HAL_Delay(200);
 
 	xprintf(MCU, "CHECK_MCU");
 	if (Get_Serial_Response())
+	{
+		arQ.Flg.PMCU_STAT_FLAG_OK = true;
+		xprintf(PC, "%s\r\n", arQ.Buf.GSM_RESPONSE);
 		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
+	}
 	else
+	{
+		arQ.Flg.PMCU_STAT_FLAG_OK = false;
+		xprintf(PC, "PMCU Error!\r\n");
 		bprintf("PMCU Error!\r\n");
+	}
 
 	Clear_UART_Buffers();
 }
@@ -292,12 +312,12 @@ void Main_Routine(void)
 {
 	bprintf("\r\n****************  Main Routine  ****************\r\n");
 
-	BLE_Print_Date_Time();
+	Sync_DateTime_From_PMCU();
+	Print_Date_Time();
 	Check_Primary_Board();
 	Read_Data();
 
 	arQ.Flg.LOCK_5S_ROUTINE = false;
-
 }
 
 
@@ -320,36 +340,43 @@ void Minute_Routine(void)
 
 void Read_Data(void)
 {
-	sprintf(arQ.Buf.DESIRED_RESPONSE, "#P");
-	Clear_UART_Buffers();
-	bprintf("Reading Power Data: ");
-
-	xprintf(MCU, "READ_POWER");
-	if (Get_Serial_Response())
+	if (arQ.Flg.PMCU_STAT_FLAG_OK)
 	{
-		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
-		// Save values somewhere
+		sprintf(arQ.Buf.DESIRED_RESPONSE, "#PWR:");
+		Clear_UART_Buffers();
+		bprintf("Reading Power Data: ");
+
+		xprintf(MCU, "READ_POWER");
+		if (Get_Serial_Response())
+		{
+			bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
+		}
+		else
+		{
+			bprintf("Power Data Error!\r\n");
+		}
+
+
+		sprintf(arQ.Buf.DESIRED_RESPONSE, "#SNS:");
+		Clear_UART_Buffers();
+		bprintf("Reading Sensor Data: ");
+
+		xprintf(MCU, "READ_SENSOR");
+		if (Get_Serial_Response())
+		{
+			bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
+			// Save values somewhere
+		}
+		else
+		{
+			bprintf("Sensor Data Error!\r\n");
+		}
 	}
 	else
 	{
-		bprintf("Power Data Error!\r\n");
+		bprintf("Cant Read Sensor Data, PMCU Error!\r\n");
 	}
 
-
-	sprintf(arQ.Buf.DESIRED_RESPONSE, "#S");
-	Clear_UART_Buffers();
-	bprintf("Reading Sensor Data: ");
-
-	xprintf(MCU, "READ_SENSOR");
-	if (Get_Serial_Response())
-	{
-		bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
-		// Save values somewhere
-	}
-	else
-	{
-		bprintf("Sensor Data Error!\r\n");
-	}
 }
 
 
@@ -374,6 +401,32 @@ void Send_String_Over_BLE(void)
 }
 
 
+
+
+void Sync_DateTime_From_PMCU(void)
+{
+	sprintf(arQ.Buf.DESIRED_RESPONSE, "#DT:");
+	Clear_UART_Buffers();
+
+	xprintf(PC, "Sychronizing time from PMCU.\r\n");
+	bprintf("Sychronizing time from PMCU.\r\n");
+	//HAL_Delay(200);
+
+	xprintf(MCU, "GetDateTime");
+	if (Get_Serial_Response())
+	{
+		Extract_DateTime_From_String(arQ.Buf.GSM_RESPONSE, &arQ.DTm);
+		arQ.Flg.PMCU_STAT_FLAG_OK = true;
+		xprintf(PC, "Current Date and Time: %s\r\n", arQ.Buf.GSM_RESPONSE);
+		bprintf("Current Date and Time: %s\r\n", arQ.Buf.GSM_RESPONSE);
+	}
+	else
+	{
+		arQ.Flg.PMCU_STAT_FLAG_OK = false;
+		xprintf(PC, "No Response!\r\n");
+		bprintf("No Response!\r\n");
+	}
+}
 
 
 
