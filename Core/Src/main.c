@@ -74,11 +74,12 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 
 arQ_t arQ;
-
-uint8_t rxChar;
 uint8_t arQ_tmi17_ctr;
-
-char strDisplay[250];
+uint32_t 	UART_Char_Ctr;
+char 			UART_Char;
+char			TEMP_Buffer[100];
+char			UART_Buffer[100];
+char 			strDisplay[250];
 
 /* USER CODE END PV */
 
@@ -151,24 +152,28 @@ int main(void)
 
   HAL_Delay(3000);
 
-  RTC_Init();
-  ArQ_DateTime_Init();
-  ArQ_Sys_Init();
+  HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_Char, 1);
+
+  //RTC_Init();
+  //ArQ_DateTime_Init();
+  //ArQ_Sys_Init();
   //Check_Primary_Board();
 
   /* USER CODE END 2 */
 
   /* Init code for STM32_WPAN */
-  MX_APPE_Init();
+  //MX_APPE_Init();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    MX_APPE_Process();
+    //MX_APPE_Process();
 
     /* USER CODE BEGIN 3 */
+  	//HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+  	HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
@@ -456,7 +461,8 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.OverSampling = UART_OVERSAMPLING_16;
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
+  huart1.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
   if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
@@ -498,10 +504,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, NRST_PMCU_Pin|GPIO4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, STAT_Pin|GPIO4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, IO3_Pin|GPIO1_Pin|GPIO2_Pin|GPIO3_Pin, GPIO_PIN_RESET);
@@ -759,10 +765,47 @@ void WatchDog_Reset(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	arQ.Flg.UART_SERIAL_FLAG = true;
-	arQ.Buf.UART_DATA[arQ.Ctr.WRITE_CNTR++] = rxChar;
+	// Clear Buffer id starting to zero
+	if (UART_Char_Ctr == 0)
+		memset(TEMP_Buffer, '\0', 100);
 
-	HAL_UART_Receive_IT(&huart1, &rxChar, 1);
+	// Copy character to buffer
+	TEMP_Buffer[UART_Char_Ctr] = UART_Char;
+
+	if (UART_Char_Ctr > 100)	UART_Char_Ctr = 0;
+	else											UART_Char_Ctr++;
+
+
+	// reset counter when carriage return encounters
+	if ((UART_Char== '\n') ||
+		 ((TEMP_Buffer[UART_Char_Ctr-1] == '\r') && (TEMP_Buffer[UART_Char_Ctr] == '\n')))
+	{
+		UART_Char_Ctr = 0;
+		sprintf(UART_Buffer, TEMP_Buffer);
+	}
+
+
+/*	if ((UART_Buffer[UART_Char_Ctr-9] == 'c') &&
+			(UART_Buffer[UART_Char_Ctr-8] == 'l') &&
+			(UART_Buffer[UART_Char_Ctr-7] == 'e') &&
+			(UART_Buffer[UART_Char_Ctr-6] == 'a') &&
+			(UART_Buffer[UART_Char_Ctr-5] == 'r') &&
+			(UART_Buffer[UART_Char_Ctr-4] == 'b') &&
+			(UART_Buffer[UART_Char_Ctr-3] == 'u') &&
+			(UART_Buffer[UART_Char_Ctr-2] == 'f'))
+	{
+		memset(UART_Buffer, '\0', 100);
+		UART_Char_Ctr = 0;
+	}*/
+
+	if (UART_Char == '$')
+	{
+		memset(UART_Buffer, '\0', 100);
+		UART_Char_Ctr = 0;
+		HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+	}
+
+	HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_Char, 1);
 }
 
 /* USER CODE END 4 */
