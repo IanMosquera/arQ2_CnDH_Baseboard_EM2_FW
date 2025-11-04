@@ -28,9 +28,6 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32wbxx_hal.h"
-#include "app_conf.h"
-#include "app_entry.h"
-#include "app_common.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -96,8 +93,8 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 void Check_Primary_Board(void);
 
-void MAIN_PROGRAM(void);
-void BLE_PROGRAM(void);
+//void MAIN_PROGRAM(void);
+//void BLE_PROGRAM(void);
 
 void RTC_Init(void);
 void RTC_Assign_Date(RTC_DateTypeDef *pDate);
@@ -120,6 +117,8 @@ void Log_Error(char *pBuffer);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define NRST_PMCU_Pin GPIO_PIN_0
+#define NRST_PMCU_GPIO_Port GPIOA
 #define STAT_Pin GPIO_PIN_4
 #define STAT_GPIO_Port GPIOA
 

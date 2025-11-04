@@ -38,11 +38,11 @@
 /*#define HAL_CRYP_MODULE_ENABLED   */
 /*#define HAL_COMP_MODULE_ENABLED   */
 /*#define HAL_CRC_MODULE_ENABLED   */
-#define HAL_HSEM_MODULE_ENABLED
-#define HAL_I2C_MODULE_ENABLED
-#define HAL_IPCC_MODULE_ENABLED
+/*#define HAL_HSEM_MODULE_ENABLED   */
+/*#define HAL_I2C_MODULE_ENABLED   */
+/*#define HAL_IPCC_MODULE_ENABLED   */
 /*#define HAL_IRDA_MODULE_ENABLED   */
-#define HAL_IWDG_MODULE_ENABLED
+/*#define HAL_IWDG_MODULE_ENABLED   */
 /*#define HAL_LCD_MODULE_ENABLED   */
 /*#define HAL_LPTIM_MODULE_ENABLED   */
 #define HAL_PCD_MODULE_ENABLED
@@ -56,7 +56,7 @@
 /*#define HAL_SPI_MODULE_ENABLED   */
 #define HAL_TIM_MODULE_ENABLED
 /*#define HAL_TSC_MODULE_ENABLED   */
-/*#define HAL_UART_MODULE_ENABLED   */
+#define HAL_UART_MODULE_ENABLED
 /*#define HAL_USART_MODULE_ENABLED   */
 /*#define HAL_WWDG_MODULE_ENABLED   */
 #define HAL_EXTI_MODULE_ENABLED
@@ -84,7 +84,7 @@
 #define USE_HAL_SPI_REGISTER_CALLBACKS       0u
 #define USE_HAL_TIM_REGISTER_CALLBACKS       0u
 #define USE_HAL_TSC_REGISTER_CALLBACKS       0u
-#define USE_HAL_UART_REGISTER_CALLBACKS      0u
+#define USE_HAL_UART_REGISTER_CALLBACKS      1u
 #define USE_HAL_USART_REGISTER_CALLBACKS     0u
 #define USE_HAL_WWDG_REGISTER_CALLBACKS      0u
 
@@ -174,7 +174,7 @@
   */
 
 #define  VDD_VALUE				3300U                   /*!< Value of VDD in mv */
-#define  TICK_INT_PRIORITY            15U      /*!< tick interrupt priority */
+#define  TICK_INT_PRIORITY            3U      /*!< tick interrupt priority */
 #define  USE_RTOS                     0U
 #define  PREFETCH_ENABLE              1U
 #define  INSTRUCTION_CACHE_ENABLE     1U
