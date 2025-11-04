@@ -26,7 +26,7 @@
 #include "string.h"
 #include "stdarg.h"
 #include "stdbool.h"
-//#include "ble_hci_le.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,9 +58,10 @@ arQ_t 	arQ;
 
 bool BLE_INIT = false;
 bool BLE_MODE = false;
+bool f_PMCU_MSG = false;
 
 char 		strDisplay[250];
-char 		UART_CHAR;
+uint8_t UART_CHAR;
 char		TEMP_Buffer[100];
 char 		UART_Buffer[100];
 
@@ -126,7 +127,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   CHAR_CTR = 0;
-  HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_CHAR, 1);
+  HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -136,8 +137,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
-  	HAL_Delay(1000);
+  	if (f_PMCU_MSG)
+  	{
+  		xprintf(PC, "%s", UART_Buffer);
+  		f_PMCU_MSG = false;
+  		Clear_USB_Buffers();
+  	}
+
+
   }
   /* USER CODE END 3 */
 }
@@ -328,7 +335,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 19200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -622,6 +629,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart1)
 	{
+		//HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_CHAR, 1);
+
+
 		// Clear Buffer id starting to zero
 		if (CHAR_CTR == 0)
 			memset(TEMP_Buffer, '\0', 100);
@@ -641,25 +651,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			CHAR_CTR = 0;
 			sprintf(UART_Buffer, TEMP_Buffer);
 			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+			f_PMCU_MSG = true;
+			//xprintf(PC, "%s", UART_Buffer);
 		}
 
-
-		if ((UART_Buffer[CHAR_CTR-9] == 'c') &&
-				(UART_Buffer[CHAR_CTR-8] == 'l') &&
-				(UART_Buffer[CHAR_CTR-7] == 'e') &&
-				(UART_Buffer[CHAR_CTR-6] == 'a') &&
-				(UART_Buffer[CHAR_CTR-5] == 'r') &&
-				(UART_Buffer[CHAR_CTR-4] == 'b') &&
-				(UART_Buffer[CHAR_CTR-3] == 'u') &&
-				(UART_Buffer[CHAR_CTR-2] == 'f'))
-		{
-			memset(UART_Buffer, '\0', 100);
-			CHAR_CTR = 0;
-		}
-
-		HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_CHAR, 1);
+		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 	}
 }
+
+
 /* USER CODE END 4 */
 
 /**
