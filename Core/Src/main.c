@@ -335,7 +335,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 19200;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -644,15 +644,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		else
 			CHAR_CTR++;
 
-		// reset counter when carriage return encounters
+		/*// reset counter when carriage return encounters
 		if ((UART_CHAR== '\n') ||
-			 ((TEMP_Buffer[CHAR_CTR-1] == '\r') && (TEMP_Buffer[CHAR_CTR] == '\n')))
+			 ((TEMP_Buffer[CHAR_CTR-2] == '\r') && (TEMP_Buffer[CHAR_CTR-1] == '\n')))
 		{
 			CHAR_CTR = 0;
 			sprintf(UART_Buffer, TEMP_Buffer);
 			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
 			f_PMCU_MSG = true;
 			//xprintf(PC, "%s", UART_Buffer);
+		}*/
+		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^'))
+		{
+			CHAR_CTR = 0;
+			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+			f_PMCU_MSG = true;
 		}
 
 		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
