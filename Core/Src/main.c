@@ -59,6 +59,7 @@ arQ_t 	arQ;
 bool BLE_INIT = false;
 bool BLE_MODE = false;
 bool f_PMCU_MSG = false;
+bool f_PMCU_QRY = false;
 
 char 		strDisplay[250];
 uint8_t UART_CHAR;
@@ -142,6 +143,14 @@ int main(void)
   		xprintf(PC, "%s", UART_Buffer);
   		f_PMCU_MSG = false;
   		Clear_USB_Buffers();
+  	}
+  	else if (f_PMCU_QRY)
+  	{
+  		if (strcmp(UART_Buffer, "Status") == 0)
+  		{
+  			xprintf(PMCU, "Attached\r\n");
+  			f_PMCU_QRY = false;
+  		}
   	}
 
 
@@ -570,7 +579,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 			j++;
 
 			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+			else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 
 			HAL_Delay(50);
 			x = 0;
@@ -587,7 +596,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sval = va_arg(args, char *);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
+				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'd')
 			{
@@ -597,7 +606,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sprintf(cdcSTR, format, ival);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'f')
 			{
@@ -606,7 +615,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				fval = va_arg(args, double);
 				sprintf(cdcSTR, format, fval);
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			HAL_Delay(50);
 			i = -1;
@@ -614,7 +623,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 	}
 	tempSTR[i] = '\0';
 	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	//else if (stream == GSM) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+	else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 	va_end(args);
 }
 
@@ -660,6 +669,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
 			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
 			f_PMCU_MSG = true;
+		}
+
+		if ((TEMP_Buffer[CHAR_CTR-1] == '?') && (TEMP_Buffer[CHAR_CTR-2] == '?'))
+		{
+			CHAR_CTR = 0;
+			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+			f_PMCU_QRY = true;
 		}
 
 		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);

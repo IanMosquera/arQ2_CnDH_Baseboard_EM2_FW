@@ -125,6 +125,7 @@ void Log_Error(char *pBuffer);
 /* USER CODE BEGIN Private defines */
 #define PC			0
 #define GSM			1
+#define PMCU		2
 
 // Return Message Definitions
 
