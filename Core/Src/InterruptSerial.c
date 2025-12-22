@@ -8,6 +8,7 @@
 
 #include "interruptSerial.h"
 #include "arQ_CnDH_Baseboard.h"
+#include "Global_Variables.h"
 
 #include "string.h"
 #include "usbd_cdc_if.h"
@@ -50,12 +51,9 @@ void Clear_UART_Buffers(void)
 
 
 
-void Clear_USB_Buffers(void)
-{
-	memset(arQ.Buf.RXD2_DATA, '\0', 255);
-
-	arQ.Ctr.WRITE2_CNTR  = 0;
-	arQ.Flg.USB_SERIAL_FLAG = 0;
+void Clear_USB_Buffers(void){
+	memset(USB_BUFFER, '\0', 255);
+	USB_FLAG = false;
 }
 
 

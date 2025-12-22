@@ -255,7 +255,7 @@ void Check_Primary_Board(void)
 	bprintf("Checking PMCU: ");
 	//HAL_Delay(200);
 
-	xprintf(MCU, "CHECK_MCU");
+	xprintf(PMCU, "CHECK_MCU");
 	if (Get_Serial_Response())
 	{
 		arQ.Flg.PMCU_STAT_FLAG_OK = true;
@@ -355,7 +355,7 @@ void Read_Data(void)
 		Clear_UART_Buffers();
 		bprintf("Reading Power Data: ");
 
-		xprintf(MCU, "READ_POWER");
+		xprintf(PMCU, "READ_POWER");
 		if (Get_Serial_Response())
 		{
 			bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
@@ -370,7 +370,7 @@ void Read_Data(void)
 		Clear_UART_Buffers();
 		bprintf("Reading Sensor Data: ");
 
-		xprintf(MCU, "READ_SENSOR");
+		xprintf(PMCU, "READ_SENSOR");
 		if (Get_Serial_Response())
 		{
 			bprintf("%s\r\n", arQ.Buf.GSM_RESPONSE);
@@ -433,7 +433,7 @@ void Sync_DateTime_From_PMCU(void)
 	bprintf("Sychronizing time from PMCU.\r\n");
 	//HAL_Delay(200);
 
-	xprintf(MCU, "GetDateTime");
+	xprintf(PMCU, "GetDateTime");
 	if (Get_Serial_Response())
 	{
 		Extract_DateTime_From_String(arQ.Buf.GSM_RESPONSE, &arQ.DTm);

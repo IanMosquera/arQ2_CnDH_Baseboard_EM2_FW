@@ -42,6 +42,9 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
+
+
 /*typedef struct
 {
 	char USB_BUFFER[255];
@@ -81,6 +84,14 @@ typedef struct
 	dateTime_t			DTm;
 	flag_t					Flg;
 }arQ_t;*/
+
+typedef enum{
+	PC,
+	LTE,
+	PMCU,
+	SMCU,
+	LORA
+}stream;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

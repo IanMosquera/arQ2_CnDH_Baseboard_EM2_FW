@@ -698,7 +698,7 @@ bool Command_Not_Yet_Sent_To_PMCU(void)
 
 void Get_Power_Data(void)
 {
-	xprintf(MCU, "POWER_DATA");
+	xprintf(PMCU, "POWER_DATA");
 	arQ.Flg.COMMAND_SENT = true;
 	HAL_Delay(200);
 
@@ -733,7 +733,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 			j++;
 
 			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+			else if (stream == SMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 
 			HAL_Delay(10);
 			x = 0;
@@ -750,7 +750,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sval = va_arg(args, char *);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
+				else if (stream == SMCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'd')
 			{
@@ -760,7 +760,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				sprintf(cdcSTR, format, ival);
 
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == SMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			else if (FormatString[j] == 'f')
 			{
@@ -769,7 +769,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 				fval = va_arg(args, double);
 				sprintf(cdcSTR, format, fval);
 				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				else if (stream == SMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
 			}
 			HAL_Delay(10);
 			i = -1;
@@ -777,7 +777,7 @@ void xprintf(uint8_t stream, char *FormatString, ...)
 	}
 	tempSTR[i] = '\0';
 	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	else if (stream == MCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+	else if (stream == SMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
 	va_end(args);
 }
 

@@ -37,7 +37,7 @@
 #include "usbd_cdc_if.h"
 #include "string.h"
 #include "stdbool.h"
-
+#include "Global_Variables.h"
 #include "InterruptSerial.h"
 #include "InterruptTimer.h"
 
@@ -76,9 +76,7 @@ UART_HandleTypeDef huart1;
 arQ_t arQ;
 uint8_t arQ_tmi17_ctr;
 uint32_t 	UART_Char_Ctr;
-char 			UART_Char;
-char			TEMP_Buffer[100];
-char			UART_Buffer[100];
+
 char 			strDisplay[250];
 
 /* USER CODE END PV */
@@ -751,8 +749,8 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
 	CDC_Transmit_FS(Buf, Len);
 
-	sprintf(arQ.Buf.USB_BUFFER, (char *)Buf);
-	arQ.Flg.USB_SERIAL_FLAG = true;
+	sprintf(USB_BUFFER, (char *)Buf);
+	USB_FLAG = true;
 }
 
 
