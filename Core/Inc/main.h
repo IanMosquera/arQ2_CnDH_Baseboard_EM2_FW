@@ -29,6 +29,18 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32wbxx_hal.h"
 
+#include "stm32wbxx_ll_tim.h"
+#include "stm32wbxx_ll_bus.h"
+#include "stm32wbxx_ll_cortex.h"
+#include "stm32wbxx_ll_rcc.h"
+#include "stm32wbxx_ll_system.h"
+#include "stm32wbxx_ll_utils.h"
+#include "stm32wbxx_ll_pwr.h"
+#include "stm32wbxx_ll_gpio.h"
+#include "stm32wbxx_ll_dma.h"
+
+#include "stm32wbxx_ll_exti.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
@@ -71,10 +83,30 @@ typedef struct
 
 typedef struct
 {
-	buffers_t				Buf;
+	buffers_t			Buf;
 	dateTime_t			DTm;
-	flag_t					Flg;
+	flag_t				Flg;
 }arQ_t;
+
+extern TIM_HandleTypeDef htim17;
+
+extern bool f_PMCU_MSG;
+extern bool f_PMCU_QRY;
+extern bool f_PMCU_CMD;
+extern bool f_USB;
+
+extern char strDisplay[250];
+extern char	TEMP_Buffer[100];
+extern char UART_Buffer[100];
+extern char USB_BUFFER[255];
+
+extern uint8_t CHAR_CTR;
+extern uint8_t g_RGAccuTipsData;
+extern uint8_t Mili_Sec_Ctr;
+extern uint8_t UART_CHAR;
+
+extern uint16_t Process_Ctr;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -127,6 +159,8 @@ void Log_Error(char *pBuffer);
 #define GSM			1
 #define PMCU		2
 
+
+#define arQTimer &htim17
 // Return Message Definitions
 
 /* USER CODE END Private defines */
