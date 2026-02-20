@@ -88,6 +88,14 @@ typedef struct
 	flag_t				Flg;
 }arQ_t;
 
+
+typedef enum{
+PC,
+GSM,
+PMCU
+}Stream_t;
+
+
 extern TIM_HandleTypeDef htim17;
 
 extern bool f_PMCU_MSG;
@@ -155,9 +163,6 @@ void Log_Error(char *pBuffer);
 #define STAT_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
-#define PC			0
-#define GSM			1
-#define PMCU		2
 
 
 #define arQTimer &htim17

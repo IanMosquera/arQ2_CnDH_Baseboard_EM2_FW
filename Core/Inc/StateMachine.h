@@ -12,6 +12,7 @@
 
 typedef enum
 {
+	s_CHCK,
 	s_DATA,
 	s_DBUG,
 	s_FLTS,
@@ -21,8 +22,8 @@ typedef enum
 	s_MIDNIGHTRESET,
 	s_PC,
 	s_PMCU,
-	s_PWSV,
 	s_PRST,
+	s_PWSV,
 	s_SEND,
 	s_SMSC,
 	s_STRT,
@@ -35,6 +36,7 @@ typedef enum
 {
 	e_BBDT,
 	e_BDTC,
+	e_CHCK,
 	e_CHGD,
 	e_DBUG,
 	e_DONE,
@@ -73,6 +75,8 @@ void STM_StateManager(uint8_t event);
 
 e_Events FilterUSB_State(void);
 e_Events IDLE_State(void);
+
+uint8_t CHECK_State(void);
 uint8_t INIT_State(void);
 uint8_t STM_DetermineNextState(uint8_t state, uint8_t event);
 

@@ -65,6 +65,7 @@ bool f_PMCU_QRY = false;
 bool f_USB = false;
 
 uint8_t g_RGAccuTipsData;
+uint8_t g_RGTipsData;
 
 char strDisplay[250];
 char TEMP_Buffer[100];

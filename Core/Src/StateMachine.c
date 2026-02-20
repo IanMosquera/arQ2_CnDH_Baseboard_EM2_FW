@@ -27,12 +27,16 @@ s_nextState nState[] = {
 {s_INIT, e_LWBT, s_PWSV},
 
 {s_IDLE, e_NONE, s_IDLE},
+{s_IDLE, e_CHCK, s_CHCK},
 {s_IDLE, e_DBUG, s_DBUG},
 {s_IDLE, e_BDTC, s_IDLE},
 {s_IDLE, e_LWBT, s_PWSV},
 {s_IDLE, e_TTGD, s_DATA},
 {s_IDLE, e_SMSC, s_SMSC},
 {s_IDLE, e_PRST, s_PRST},
+
+{s_CHCK, e_NONE, s_CHCK},
+{s_CHCK, e_DONE, s_IDLE},
 
 {s_DBUG, e_DBUG, s_DBUG},
 {s_DBUG, e_DONE, s_IDLE},
@@ -78,6 +82,10 @@ void STM_UponEntering(uint8_t nextState){
 		case s_FLTS:{
 			g_CurrentEvent = FilterUSB_State();
 			break;
+		}
+
+		case s_CHCK:{
+			g_CurrentEvent = CHECK_State();
 		}
 
 		default:
@@ -181,8 +189,58 @@ e_Events IDLE_State(void){
 		HAL_Delay(500);
 	}*/
 
+
+	if ((MIN == 27) && (SEC < 2)){
+		//HAL_GPIO_WritePin(GPIOx, GPIO_Pin, PinState);
+		return e_CHCK;
+	}
+
 	return e_NONE;
 }
+
+
+
+
+uint8_t CHECK_State(void){
+	if (f_PMCU_CMD){
+		if (!UTL_CompareEqual(UART_Buffer, "ACK")){
+			Reset_PMCU();
+			f_PMCU_CMD = false;
+			return e_DONE;
+		}
+
+
+		xprintf(PMCU, "G_DTM$$");
+		if (!Get_Desired_Response("DTM:", 5)){
+			Reset_PMCU();
+			f_PMCU_CMD = false;
+			return e_DONE;
+		}
+		// Sync Date and Time
+
+
+		xprintf(PMCU, "G_RG1$$");
+		if (!Get_Desired_Response("RG1:", 5)){
+			Reset_PMCU();
+			f_PMCU_CMD = false;
+			return e_DONE;
+		}
+		g_RGTipsData =  atoi(RESP_Buffer);
+
+
+		xprintf(PMCU, "S_EXT$$");
+		if (!Get_Desired_Response("ACK", 5)){
+			Reset_PMCU();
+			f_PMCU_CMD = false;
+			return e_DONE;
+		}
+		//HAL_GPIO_WritePin(GPIOx, GPIO_Pin, PIN_RESET);
+
+	}
+
+	return e_DONE;
+}
+
 
 
 
