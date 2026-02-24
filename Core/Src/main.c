@@ -564,7 +564,6 @@ void USBSerial_Interrupt_Check(void)
 
 
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
-	//xprintf(PC,"%s\r\n", USB_BUFFER);
 	strcpy((char *)USB_BUFFER, (char *)Buf);
 	f_USB = true;
 }

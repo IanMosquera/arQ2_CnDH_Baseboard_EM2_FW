@@ -7,124 +7,253 @@
 
 #include "Debug.h"
 #include "string.h"
+#include "ARQ.h"
 #include "stdlib.h"
 #include "StateMachine.h"
 #include "usbd_cdc_if.h"
 #include "UtilityFunctions.h"
 
-char SMenu[] ={
-"SETTINGS MENU\r\n"
-"A.     Get data from the Sensor\r\n"
-"B.     Get current system configuration\r\n"
-"C.     Display SETTINGS MENU again\r\n"
-"D.     Change sending time\r\n"
-"E.     -----\r\n"
-"F.     Set Server Number\r\n"
-"G.     List registered numbers\r\n"
-"H.     Synct Time with PAGASA NTP Server\r\n"
-"I.     Set Date and Time\r\n"
-"J.     Set power board configuration\r\n"
-"K.     Get GPS Data\r\n"
-"L.     Read Data from Flash memory\r\n"
-"M.     Change password\r\n"
-"O.     Set sensor type\r\n"
-"P.     Send via HTTP\r\n"
-"Q.     Send via LoRa\r\n"
-"R.     Set phone number\r\n"
-"S.     Turn off Watchdog\r\n"
-"T.     Set arQ Serial Number\r\n"
-"U.     Turn On BLE Debug Mode\r\n"
-"V.     Enable hybrid power saving\r\n"
-"X.     Delete registered number\r\n"
-"Z.     Exit Debug Mode\r\n\r\n"
-};
 
 
-uint8_t DEBUG_State(void){
-	char x;
+static void Print_InvalidInput(char *pData);
 
-	Print_Setting_Menu();
-	HAL_Delay(200);
 
-	xprintf(PC, "Enter char:(Task timout 1 min)\r\n");
-	x = UTL_GetChar(60);
+uint8_t Debug_Mode(void){
+	bool invalid = false;
+	char c;
+	uint8_t r = 0;
 
-	ret:
+	xprintf(PC, "\nFIRMWARE Version: %s\r\n", g_firmwareVer);
 
-	switch(x){
-		case 'A':{	//Get data from the Sensor\r\n"
-			goto ret;
+  for (uint8_t i = 0; i < 26; i++){
+  	xprintf(PC, "%s\r\n", Settings_Menu[i]);
+  	HAL_Delay(5);
+  }
+
+	do{
+		xprintf(PC, "Enter choice: (A-Z)\r\n");
+		HAL_Delay(100);
+
+		c = UTL_GetChar(60);
+
+		if (c < 'A' || c > 'Z')
+			invalid = true;
+
+		if (invalid){
+			Print_InvalidInput(&c);
+			if (++r == 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n^^");
+				HAL_Delay(500);
+				return e_DONE;
+			}
+		}
+	}
+	while(invalid);
+
+	switch (c){
+		case 'A':{
+			//UTL_SensorData_Get();
+			//UTL_Append_Data();
 			break;
 		}
-		case 'B':{	//Get current system configuration
-
+		case 'B':{
+			Get_Config();
 			break;
 		}
-		case 'C':{	//Display SETTINGS MENU again\r\n"
-			return e_DBUG;
+		case 'C':{
+			return e_NONE;
 			break;
 		}
-		case 'D':{	//Change sending time
-			ChangeSendingTime();
+		case 'D':{
+			Change_SendingTime();
+			break;
+		}
+		case 'E':{	//No settings assigned
+			break;
+		}
+		case 'F':{
+			//DBG_ServerNumber_Change();
+			break;
+		}
+		case 'G':{
+			//DBG_RegisterNumbers_List();
+			break;
+		}
+		case 'H':{
+			//if (LTE_NTP_Assign())
+			//		LTE_Query_Clock();
+			break;
+		}
+		case 'I':{
+			//DBG_DateTime_Set();
+			break;
+		}
+		case 'J':{
+			//DBG_PCDM_Config_Set();
+			break;
+		}
+		case 'K':{	//Get GPS Data
+			break;
+		}
+		case 'L':{	//Read Data from Flash memory
+			break;
+		}
+		case 'M':{
+			//DBG_Password_Change();
+			break;
+		}
+		case 'N':{
+			break;
+		}
+		case 'O':{
+			//DBG_SensorType_Change();
+			break;
+		}
+		case 'P':{
+			//DBG_HTTP_Send();
+			break;
+		}
+		case 'Q':{
+			//DBG_LORA_Send();
+			break;
+		}
+		case 'R':{
+			//DBG_SIMNumber_Set();
+			break;
+		}
+		case 'S':{	// Turn off Watchdog
+			break;
+		}
+		case 'T':{
+			//DBG_ArQSerialNumber_Set();
+			break;
+		}
+		case 'U':{	// Turn On BLE Debug Mode
+			break;
+		}
+		case 'V':{	// Enable hybrid power saving
+			break;
+		}
+		case 'X':{	// Delete registered number
+			//DBG_RegisterNumber_Delete();
+			break;
+		}
+		case 'Y':{
 			break;
 		}
 		case 'Z':{
-			return e_DONE;
+			//return e_DONE;
 			break;
 		}
-		case '\0':
-			break;
-		default:
-			goto ret;
-			break;
 	}
-
-
-	return e_DBUG;
+	return e_NONE;
 }
 
 
-void ChangeSendingTime(void){
+uint8_t Change_SendingTime(void){
+	bool invalid = false;
+	uint8_t x, r = 0;
+
+	xprintf(PC, "Current sending time: ");
+	HAL_Delay(200);
+
+	xprintf(PMCU, "G_SDT\r\n");
+	if (!Get_Desired_Response("SDT:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "%i\r\n", atoi(RESP_Buffer));
+	HAL_Delay(100);
+
+
+	xprintf(PC, "(M)odify or (C)ancel?\r\n");
+	HAL_Delay(100);
+	if (ModifyCancelled(3))
+		return e_NONE;
+
+	do{
+		xprintf(PC, "Enter number (1-60) in minutes\r\n");
+		UTL_GetString(60);
+
+		x = atoi(USB_BUFFER);
+		if (x < 1 || x > 60)
+			invalid = true;
+
+		if (invalid){
+			Print_InvalidInput(USB_BUFFER);
+			if (++r == 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
+				HAL_Delay(500);
+				return e_NONE;
+			}
+		}
+	} while(invalid);
+
+	xprintf(PMCU, "S_SDT:%d$$", x);
+	if (!Get_Desired_Response("ACK", 10)){
+		xprintf(PC, "Failed to save\r\n");
+		return e_NONE;
+	}
+
+	//g_SendingTime = x;
+	xprintf(PC,  "New sending time: %d\r\n", x);
+	Clear_USB_Buffers();
+
+	return e_NONE;
+}
+
+
+
+
+
+/******************************************************************************
+  * @brief	Print Option to modify or cancel command
+  * @param	None
+  * @return None
+  * @FVer		1.2.00
+  * ***************************************************************************
+*/
+bool ModifyCancelled(uint8_t maxRetry){
+	bool invalid = false;
 	char c;
-	uint8_t x;
-	xprintf(PC, "Current Sending Time: 10\r\n");
-	HAL_Delay(100);
+	uint8_t x = 0;
 
-	invalid_char:
-	Print_Modify_Cancel();
-	HAL_Delay(100);
-	xprintf(PC, "(Timeout: 60 Sec)\r\n");
-
-	c = UTL_GetChar(60);
-	if (c == 'C'){
-		return;
-	}
-
-	if (c != 'M'){
-		xprintf(PC, "Invalid character!\r\n");
-		goto invalid_char;
-	}
-
-	invalid_num:
-	xprintf(PC, "Enter integer value in minutes (1-99)\r\n");
-	UTL_GetString(60);
-
-	if ((USB_BUFFER[0] < 48) || (USB_BUFFER[0] > 57) ||
-		 (USB_BUFFER[1] < 48) || (USB_BUFFER[1] > 57)){
-		xprintf(PC, "Invalid value!\r\n");
+	do{
 		Clear_USB_Buffers();
-		goto invalid_num;
-	}
 
-	x = atoi(USB_BUFFER);
-	if ((x < 0) || (x > 100)){
-		xprintf(PC, "Invalid value!\r\n");
-		Clear_USB_Buffers();
-		goto invalid_num;
-	}
+		c = GetChar(60);
+		if (c != 'M' || c != 'C')
+			invalid = true;
 
-	xprintf(PC, "New Sending Time: %d\r\n\r\n", x);
+		if (invalid){
+			Print_InvalidInput(&c);
+
+			if (++x == maxRetry){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
+				HAL_Delay(100);
+				return true;
+			}
+		}
+	}while(invalid);
+
+	if (c == 'C')
+		return true;
+
+	return false;
 }
+
+
+
+
+
+static void Print_InvalidInput(char *pData){
+	xprintf(PC, "\"%s\" is an invalid input!\r\n");
+	HAL_Delay(100);
+}
+
+
+
+
 
 
 void Print_Modify_Cancel(void){
@@ -132,7 +261,19 @@ void Print_Modify_Cancel(void){
 	Clear_USB_Buffers();
 }
 
+
+
+
+
+
+
 void Print_Setting_Menu(void){
-	CDC_Transmit_FS((uint8_t *)SMenu, strlen(SMenu));
-	Clear_USB_Buffers();
+	xprintf(PC, "\nFIRMWARE Version: %s\r\n", g_firmwareVer);
+
+  for (uint8_t i = 0; i < 26; i++){
+  	xprintf(PC, "%s\r\n", Settings_Menu[i]);
+  	HAL_Delay(5);
+  }
+
+  Clear_USB_Buffers();
 }

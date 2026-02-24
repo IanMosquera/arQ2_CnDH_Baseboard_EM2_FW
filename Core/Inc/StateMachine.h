@@ -10,6 +10,39 @@
 
 #include "main.h"
 
+
+
+static const char Settings_Menu[26][50] =
+{
+    "SETTINGS MENU",
+    "A.     Get data from the Sensor",
+    "B.     Get current system configuration",
+    "C.     Display SETTINGS MENU again",
+    "D.     Change sending time",
+    "E.     -----",
+    "F.     Set Server Number",
+    "G.     List registered numbers",
+    "H.     Sync Time with PAGASA NTP Server",
+    "I.     Set Date and Time",
+    "J.     Set power board configuration",
+    "K.     Get GPS Data",
+    "L.     Read Data from Flash memory",
+    "M.     Change password",
+    "O.     Set sensor type",
+    "P.     Send via HTTP",
+    "Q.     Send via LoRa",
+    "R.     Set phone number",
+    "S.     Turn off Watchdog",
+    "T.     Set arQ Serial Number",
+    "U.     Turn On BLE Debug Mode",
+    "V.     Enable hybrid power saving",
+    "X.     Delete registered number",
+    "Z.     Exit Debug Mode",
+    "",
+    "Enter Choice"
+};
+
+
 typedef enum
 {
 	s_CHCK,
@@ -68,16 +101,18 @@ extern s_States currentState;
 extern s_States nextState;
 
 
+uint8_t CHECK_State(void);
+uint8_t DEBUG_State(void);
+uint8_t Filter_USB_String(void);
+uint8_t IDLE_State(void);
+uint8_t INIT_State(void);
 uint8_t STM_ActionWhileInState(uint8_t state);
+uint8_t STM_DetermineNextState(uint8_t state, uint8_t event);
+
+
+
+void STM_StateManager(uint8_t event);
 void STM_UponEntering(uint8_t nextState);
 void STM_UponExiting(uint8_t currentState);
-void STM_StateManager(uint8_t event);
-
-e_Events FilterUSB_State(void);
-e_Events IDLE_State(void);
-
-uint8_t CHECK_State(void);
-uint8_t INIT_State(void);
-uint8_t STM_DetermineNextState(uint8_t state, uint8_t event);
 
 #endif /* INC_STATEMACHINE_H_ */

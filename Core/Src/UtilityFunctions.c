@@ -103,10 +103,10 @@ char *Get_Desired_Response(char *Response, uint8_t timeout){
 	char *ret = NULL;
 	uint8_t len;
 
-	HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_Char, 1);
-	HAL_UART_Receive_IT(UART_LTE, (uint8_t *)&UART_Char, 1);
-	HAL_UART_Receive_IT(UART_AMR, (uint8_t *)&UART_Char, 1);
-	HAL_UART_Receive_IT(UART_SDI, (uint8_t *)&UART_Char, 1);
+	//HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_Char, 1);
+	//HAL_UART_Receive_IT(UART_LTE, (uint8_t *)&UART_Char, 1);
+	//HAL_UART_Receive_IT(UART_AMR, (uint8_t *)&UART_Char, 1);
+	//HAL_UART_Receive_IT(UART_SDI, (uint8_t *)&UART_Char, 1);
 
 	len = strlen(Response);
 	Task_TimeOut_Start();

@@ -115,6 +115,8 @@ extern uint8_t UART_CHAR;
 
 extern uint16_t Process_Ctr;
 
+extern uint8_t g_RGTipsData;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

@@ -5,6 +5,7 @@
  *      Author: IanCMosquera
  */
 
+#include "ARQ.h"
 #include "Debug.h"
 #include "StateMachine.h"
 #include "stdbool.h"
@@ -39,6 +40,7 @@ s_nextState nState[] = {
 {s_CHCK, e_DONE, s_IDLE},
 
 {s_DBUG, e_DBUG, s_DBUG},
+{s_DBUG, e_NONE, s_DBUG},
 {s_DBUG, e_DONE, s_IDLE},
 
 {s_DATA, e_NONE, s_SEND},
@@ -79,11 +81,6 @@ void STM_UponEntering(uint8_t nextState){
 			break;
 		}
 
-		case s_FLTS:{
-			g_CurrentEvent = FilterUSB_State();
-			break;
-		}
-
 		case s_CHCK:{
 			g_CurrentEvent = CHECK_State();
 		}
@@ -100,6 +97,13 @@ void STM_UponEntering(uint8_t nextState){
 void STM_UponExiting(uint8_t currentState){
 
 }
+
+
+
+
+
+
+
 
 
 
@@ -122,11 +126,8 @@ void STM_StateManager(uint8_t event){
 
 
 
-e_Events FilterUSB_State(void){
-	uint8_t i;
-
-	i = strcmp(USB_BUFFER, "DEBUG\r\n");
-	if (i == 0){
+uint8_t Filter_USB_String(void){
+	if (UTL_CompareEqual(USB_BUFFER, "DEBUG")){
 		Clear_USB_Buffers();
 		return e_DBUG;
 	}
@@ -138,11 +139,11 @@ e_Events FilterUSB_State(void){
 
 
 
-e_Events IDLE_State(void){
+uint8_t IDLE_State(void){
 
 	if (f_USB){
 		f_USB = false;
-		return FilterUSB_State();
+		return Filter_USB_String();
 	}
 
 	if (f_PMCU_MSG){
@@ -240,6 +241,21 @@ uint8_t CHECK_State(void){
 
 	return e_DONE;
 }
+
+
+
+
+/******************************************************************************
+  * @brief	Debug State code
+  * @param	None
+  * @return events
+  * @FVer		7.0
+  * ***************************************************************************
+*/
+uint8_t DEBUG_State(void){
+	return Debug_Mode();
+}
+
 
 
 
