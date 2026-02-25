@@ -7,10 +7,17 @@
 
 
 #include "ARQ.h"
-#include "UtilityFunctions.h"
 #include "Timer.h"
+#include "UtilityFunctions.h"
+
+#include <usart.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
+
+
+
+
 
 char g_firmwareVer[4];
 
@@ -20,6 +27,21 @@ char g_firmwareVer[4];
 
 
 /*************************** Functions ****************************************/
+
+
+
+
+
+/******************************************************************************
+  * @brief	Clear buffer
+  * @param	pBuffer	pointer to a buffer
+  * @return None
+  * @FVer		7.0
+  * ***************************************************************************
+*/
+void	Clear_Buffer(char *pBuffer, uint16_t len){
+	memset(pBuffer, '\0', len);
+}
 
 
 
@@ -70,9 +92,12 @@ void Get_Config(void){
 		xprintf(PC, "Password: %s\r\n", RESP_Buffer);
 	}
 	HAL_Delay(100);
-
-
 }
+
+
+
+
+
 /******************************************************************************
   * @brief	Get character from USB
   * @param	None
@@ -83,7 +108,7 @@ void Get_Config(void){
 char GetChar(uint8_t timeout){
 	bool i = true;
 
-	UTL_Buffer_Clear(USB_BUFFER, 255);
+	Clear_Buffer(USB_BUFFER, 255);
 	Task_TimeOut_Start();
 
 	while(i){
@@ -97,3 +122,7 @@ char GetChar(uint8_t timeout){
 	}
 	return '\0';
 }
+
+
+
+

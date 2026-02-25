@@ -18,7 +18,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "rtc.h"
+#include "tim.h"
+#include "usart.h"
 #include "usb_device.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -47,22 +51,18 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-RTC_HandleTypeDef hrtc;
-
-TIM_HandleTypeDef htim17;
-
-UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
 arQ_t 	arQ;
 
 bool BLE_INIT = false;
-bool BLE_MODE = false;
 bool f_PMCU_MSG = false;
 bool f_PMCU_CMD = false;
 bool f_PMCU_QRY = false;
 bool f_USB = false;
+bool f_InitState = true;
+bool f_Disable_PMCU_MSG = false;
 
 uint8_t g_RGAccuTipsData;
 uint8_t g_RGTipsData;
@@ -72,9 +72,9 @@ char TEMP_Buffer[100];
 char UART_Buffer[100];
 char USB_BUFFER[255];
 
-uint8_t 	CHAR_CTR;
-uint8_t 	UART_CHAR;
-uint8_t 	Mili_Sec_Ctr = 0;
+uint8_t CHAR_CTR;
+uint8_t UART_CHAR;
+uint8_t Mili_Sec_Ctr = 0;
 
 uint16_t Process_Ctr = 0;
 /* USER CODE END PV */
@@ -82,11 +82,6 @@ uint16_t Process_Ctr = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_RTC_Init(void);
-static void MX_TIM16_Init(void);
-static void MX_TIM17_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 
@@ -131,7 +126,6 @@ int main(void)
   MX_GPIO_Init();
   MX_RTC_Init();
   MX_USB_Device_Init();
-  MX_TIM16_Init();
   MX_TIM17_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
@@ -224,215 +218,6 @@ void PeriphCommonClock_Config(void)
   /* USER CODE BEGIN Smps */
   //LL_HSEM_1StepLock( HSEM, 5);
   /* USER CODE END Smps */
-}
-
-/**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RTC_Init(void)
-{
-
-  /* USER CODE BEGIN RTC_Init 0 */
-
-  /* USER CODE END RTC_Init 0 */
-
-  /* USER CODE BEGIN RTC_Init 1 */
-
-  /* USER CODE END RTC_Init 1 */
-
-  /** Initialize RTC Only
-  */
-  hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-  hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
-
-  /* USER CODE END RTC_Init 2 */
-
-}
-
-/**
-  * @brief TIM16 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM16_Init(void)
-{
-
-  /* USER CODE BEGIN TIM16_Init 0 */
-
-  /* USER CODE END TIM16_Init 0 */
-
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-  LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
-  LL_TIM_BDTR_InitTypeDef TIM_BDTRInitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM16);
-
-  /* TIM16 interrupt Init */
-  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
-
-  /* USER CODE BEGIN TIM16_Init 1 */
-
-  /* USER CODE END TIM16_Init 1 */
-  TIM_InitStruct.Prescaler = 1000-LL_TIM_IC_FILTER_FDIV1_N2;
-  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = LL_TIM_IC_FILTER_FDIV8_N6-LL_TIM_IC_FILTER_FDIV1_N2;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  TIM_InitStruct.RepetitionCounter = 0;
-  LL_TIM_Init(TIM16, &TIM_InitStruct);
-  LL_TIM_EnableARRPreload(TIM16);
-  LL_TIM_OC_EnablePreload(TIM16, LL_TIM_CHANNEL_CH1);
-  TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
-  TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
-  TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
-  TIM_OC_InitStruct.CompareValue = 0;
-  TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
-  TIM_OC_InitStruct.OCNPolarity = LL_TIM_OCPOLARITY_HIGH;
-  TIM_OC_InitStruct.OCIdleState = LL_TIM_OCIDLESTATE_LOW;
-  TIM_OC_InitStruct.OCNIdleState = LL_TIM_OCIDLESTATE_LOW;
-  LL_TIM_OC_Init(TIM16, LL_TIM_CHANNEL_CH1, &TIM_OC_InitStruct);
-  LL_TIM_OC_DisableFast(TIM16, LL_TIM_CHANNEL_CH1);
-  TIM_BDTRInitStruct.OSSRState = LL_TIM_OSSR_DISABLE;
-  TIM_BDTRInitStruct.OSSIState = LL_TIM_OSSI_DISABLE;
-  TIM_BDTRInitStruct.LockLevel = LL_TIM_LOCKLEVEL_OFF;
-  TIM_BDTRInitStruct.DeadTime = 0;
-  TIM_BDTRInitStruct.BreakState = LL_TIM_BREAK_DISABLE;
-  TIM_BDTRInitStruct.BreakPolarity = LL_TIM_BREAK_POLARITY_HIGH;
-  TIM_BDTRInitStruct.BreakFilter = LL_TIM_BREAK_FILTER_FDIV1;
-  TIM_BDTRInitStruct.AutomaticOutput = LL_TIM_AUTOMATICOUTPUT_DISABLE;
-  LL_TIM_BDTR_Init(TIM16, &TIM_BDTRInitStruct);
-  /* USER CODE BEGIN TIM16_Init 2 */
-
-  /* USER CODE END TIM16_Init 2 */
-
-}
-
-/**
-  * @brief TIM17 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM17_Init(void)
-{
-
-  /* USER CODE BEGIN TIM17_Init 0 */
-
-  /* USER CODE END TIM17_Init 0 */
-
-  /* USER CODE BEGIN TIM17_Init 1 */
-
-  /* USER CODE END TIM17_Init 1 */
-  htim17.Instance = TIM17;
-  htim17.Init.Prescaler = 32000 -1;
-  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim17.Init.Period = 50 - 1;
-  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim17.Init.RepetitionCounter = 0;
-  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM17_Init 2 */
-
-  /* USER CODE END TIM17_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : NRST_PMCU_Pin STAT_Pin */
-  GPIO_InitStruct.Pin = NRST_PMCU_Pin|STAT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -545,28 +330,8 @@ void WatchDog_Reset(void)
 	//HAL_IWDG_Refresh(&hiwdg);
 }
 
-void USBSerial_Interrupt_Check(void)
-{
-	if (arQ.Flg.USBSERIAL_FLAG == true)
-	{
-		if (strcmp(arQ.Buf.USB_BUFFER, "MODE_BLE\r\n") == 0)
-		{
-			BLE_MODE = true;
-			Clear_USB_Buffers();
-		}
-		else if(strcmp(arQ.Buf.USB_BUFFER, "MODE_MAIN\r\n") == 0)
-		{
-			BLE_MODE = false;
-			Clear_USB_Buffers();
-		}
-	}
-}
 
 
-void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
-	strcpy((char *)USB_BUFFER, (char *)Buf);
-	f_USB = true;
-}
 
 void Clear_USB_Buffers(void)
 {
@@ -576,8 +341,7 @@ void Clear_USB_Buffers(void)
 
 
 
-void xprintf(uint8_t stream, char *FormatString, ...)
-{
+void xprintf(uint8_t stream, char *FormatString, ...){
 	va_list args;
 	char *sval;
 	int  ival;
@@ -657,6 +421,19 @@ void Log_Error(char *pBuffer)
 
 
 
+
+
+
+
+void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
+	strcpy((char *)USB_BUFFER, (char *)Buf);
+	f_USB = true;
+}
+
+
+
+
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == arQTimer){
 		if (Mili_Sec_Ctr == 20){
@@ -692,16 +469,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		else
 			CHAR_CTR++;
 
-		/*// reset counter when carriage return encounters
-		if ((UART_CHAR== '\n') ||
+		// reset counter when carriage return encounters
+		/*if ((UART_CHAR== '\n') ||
 			 ((TEMP_Buffer[CHAR_CTR-2] == '\r') && (TEMP_Buffer[CHAR_CTR-1] == '\n')))
 		{
 			CHAR_CTR = 0;
 			sprintf(UART_Buffer, TEMP_Buffer);
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
-			f_PMCU_MSG = true;
-			//xprintf(PC, "%s", UART_Buffer);
 		}*/
+
 		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
@@ -723,7 +498,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			f_PMCU_QRY = true;
 		}
 
-		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+		//if (f_Disable_PMCU_MSG ==  false){
+			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+		//}
+
 	}
 }
 

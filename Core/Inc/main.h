@@ -29,18 +29,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32wbxx_hal.h"
 
-#include "stm32wbxx_ll_tim.h"
-#include "stm32wbxx_ll_bus.h"
-#include "stm32wbxx_ll_cortex.h"
-#include "stm32wbxx_ll_rcc.h"
-#include "stm32wbxx_ll_system.h"
-#include "stm32wbxx_ll_utils.h"
-#include "stm32wbxx_ll_pwr.h"
-#include "stm32wbxx_ll_gpio.h"
-#include "stm32wbxx_ll_dma.h"
-
-#include "stm32wbxx_ll_exti.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdbool.h"
@@ -102,6 +90,8 @@ extern bool f_PMCU_MSG;
 extern bool f_PMCU_QRY;
 extern bool f_PMCU_CMD;
 extern bool f_USB;
+extern bool f_InitState;
+extern bool f_Disable_PMCU_MSG;
 
 extern char strDisplay[250];
 extern char	TEMP_Buffer[100];
@@ -148,7 +138,6 @@ void Main_Prog_LED_Stat(void);
 
 void WatchDog_Reset(void);
 
-void USBSerial_Interrupt_Check(void);
 
 void USB_CDC_RxHandler(uint8_t*, uint32_t);
 void Clear_USB_Buffers(void);

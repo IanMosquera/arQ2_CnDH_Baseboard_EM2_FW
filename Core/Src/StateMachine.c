@@ -13,6 +13,7 @@
 #include "string.h"
 #include "Timer.h"
 #include "UtilityFunctions.h"
+#include <usart.h>
 
 e_Events g_CurrentEvent;
 s_States currentState;
@@ -81,6 +82,7 @@ void STM_UponEntering(uint8_t nextState){
 			break;
 		}
 
+
 		case s_CHCK:{
 			g_CurrentEvent = CHECK_State();
 		}
@@ -104,7 +106,11 @@ void STM_UponExiting(uint8_t currentState){
 
 
 
-
+void Clear_PMCU_Flags(void){
+	f_PMCU_MSG = false;
+	f_PMCU_QRY = false;
+	f_PMCU_CMD = false;
+}
 
 
 
@@ -127,8 +133,10 @@ void STM_StateManager(uint8_t event){
 
 
 uint8_t Filter_USB_String(void){
-	if (UTL_CompareEqual(USB_BUFFER, "DEBUG")){
+	if (UTL_CompareEqual(USB_BUFFER, "DEBUG\r\n")){
 		Clear_USB_Buffers();
+		f_Disable_PMCU_MSG = true;
+		f_InitState = true;
 		return e_DBUG;
 	}
 
@@ -140,6 +148,12 @@ uint8_t Filter_USB_String(void){
 
 
 uint8_t IDLE_State(void){
+	// Initial State
+	if (f_InitState){
+	  CHAR_CTR = 0;
+	  HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+		f_InitState = false;
+	}
 
 	if (f_USB){
 		f_USB = false;

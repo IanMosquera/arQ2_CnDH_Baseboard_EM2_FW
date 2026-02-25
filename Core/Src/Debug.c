@@ -12,19 +12,42 @@
 #include "StateMachine.h"
 #include "usbd_cdc_if.h"
 #include "UtilityFunctions.h"
-
+#include <usart.h>
 
 
 static void Print_InvalidInput(char *pData);
-
+//static void Print_InvalidChar(char pChar);
 
 uint8_t Debug_Mode(void){
 	bool invalid = false;
 	char c;
 	uint8_t r = 0;
 
-	xprintf(PC, "\nFIRMWARE Version: %s\r\n", g_firmwareVer);
+	// Initial Code, performed once
+	if (f_InitState){
+		f_InitState = false;
+		xprintf(PC, "Sending DEBUG command to PMCU\r\n");
+		HAL_Delay(200);
 
+		xprintf(PMCU, "DEBUG\r\n");
+		if (!Get_Desired_Response("ACK", 10)){
+			return e_DONE;
+		}
+		xprintf(PC, "   PMCU in Debug Mode 2 State:\r\n");
+		HAL_Delay(200);
+
+		xprintf(PC, "\r\nGetting FW version\r\n");
+		HAL_Delay(500);
+
+		xprintf(PMCU, "G_FVR\r\n");
+		if (Get_Desired_Response("FVR:", 10)){
+			xprintf(PC, "\r\nFIRMWARE Version: %s\r\n", RESP_Buffer);
+			HAL_Delay(500);
+		}
+
+	}
+
+  // Action while in state
   for (uint8_t i = 0; i < 26; i++){
   	xprintf(PC, "%s\r\n", Settings_Menu[i]);
   	HAL_Delay(5);
@@ -34,16 +57,22 @@ uint8_t Debug_Mode(void){
 		xprintf(PC, "Enter choice: (A-Z)\r\n");
 		HAL_Delay(100);
 
+		Clear_Buffer(USB_BUFFER, 255);
 		c = UTL_GetChar(60);
 
 		if (c < 'A' || c > 'Z')
 			invalid = true;
+		else
+			invalid = false;
 
 		if (invalid){
-			Print_InvalidInput(&c);
-			if (++r == 3){
-				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n^^");
+			xprintf(PC, "Invalid character!\r\n");
+			HAL_Delay(100);
+
+			if (++r >= 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
 				HAL_Delay(500);
+				r = 0;
 				return e_DONE;
 			}
 		}
@@ -142,10 +171,37 @@ uint8_t Debug_Mode(void){
 			break;
 		}
 		case 'Z':{
-			//return e_DONE;
+			f_USB = false;
+			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+			f_Disable_PMCU_MSG = false;
+			Clear_PMCU_Flags();
+			f_InitState = true;
+
+			xprintf(PC, "Exiting Debug mode\r\n");
+			HAL_Delay(200);
+
+			xprintf(PMCU, "EXIT\r\n");
+			HAL_Delay(200);
+
+			return e_DONE;
+			break;
+		}
+
+		default:{
+			f_USB = false;
+			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+			f_Disable_PMCU_MSG = false;
+			Clear_PMCU_Flags();
+			f_InitState = true;
+			xprintf(PMCU, "EXIT\r\n");
+			HAL_Delay(200);
+
+			return e_DONE;
 			break;
 		}
 	}
+
+
 	return e_NONE;
 }
 
@@ -178,6 +234,8 @@ uint8_t Change_SendingTime(void){
 		x = atoi(USB_BUFFER);
 		if (x < 1 || x > 60)
 			invalid = true;
+		else
+			invalid = false;
 
 		if (invalid){
 			Print_InvalidInput(USB_BUFFER);
@@ -189,14 +247,19 @@ uint8_t Change_SendingTime(void){
 		}
 	} while(invalid);
 
-	xprintf(PMCU, "S_SDT:%d$$", x);
+	xprintf(PMCU, "S_SDT\r\n", x);
 	if (!Get_Desired_Response("ACK", 10)){
-		xprintf(PC, "Failed to save\r\n");
 		return e_NONE;
 	}
 
-	//g_SendingTime = x;
-	xprintf(PC,  "New sending time: %d\r\n", x);
+	HAL_Delay(1000);
+	xprintf(PMCU, "V:%u\r\n", x);
+	if (!Get_Desired_Response("ACK:", 10)){
+		return e_NONE;
+	}
+
+	HAL_Delay(1000);
+	xprintf(PC,  "New sending time: %d\r\n", atoi(RESP_Buffer));
 	Clear_USB_Buffers();
 
 	return e_NONE;
@@ -214,19 +277,22 @@ uint8_t Change_SendingTime(void){
   * ***************************************************************************
 */
 bool ModifyCancelled(uint8_t maxRetry){
-	bool invalid = false;
+	bool invalid = true;
 	char c;
 	uint8_t x = 0;
 
 	do{
-		Clear_USB_Buffers();
+		Clear_Buffer(USB_BUFFER, 255);
+		c = UTL_GetChar(60);
 
-		c = GetChar(60);
-		if (c != 'M' || c != 'C')
+		if (c == 'M' || c == 'C')
+			invalid = false;
+		else
 			invalid = true;
 
 		if (invalid){
-			Print_InvalidInput(&c);
+			xprintf(PC, "Invalid character!\r\n");
+			HAL_Delay(200);
 
 			if (++x == maxRetry){
 				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
@@ -252,6 +318,12 @@ static void Print_InvalidInput(char *pData){
 }
 
 
+/*
+static void Print_InvalidChar(char pChar){
+	xprintf(PC, "%c is an invalid character!\r\n", pChar);
+	HAL_Delay(100);
+}
+*/
 
 
 

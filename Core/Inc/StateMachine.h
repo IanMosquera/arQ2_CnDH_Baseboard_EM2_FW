@@ -110,7 +110,7 @@ uint8_t STM_ActionWhileInState(uint8_t state);
 uint8_t STM_DetermineNextState(uint8_t state, uint8_t event);
 
 
-
+void Clear_PMCU_Flags(void);
 void STM_StateManager(uint8_t event);
 void STM_UponEntering(uint8_t nextState);
 void STM_UponExiting(uint8_t currentState);
