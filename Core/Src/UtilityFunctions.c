@@ -126,3 +126,31 @@ char *Get_Desired_Response(char *Response, uint8_t timeout){
 
 	return ret;
 }
+
+
+
+
+
+
+/******************************************************************************
+  * @brief	Detects Command from SMCU, returns the traiing value
+  * @param	cmd	Pointer to an expected save command
+  * @return Trailing value
+  * @Testcode		https://onlinegdb.com/YHIJEAjvH
+  * @FVer		7.0
+  * ***************************************************************************
+*/
+char *SaveCommandDetected(char *cmd){
+	char *ret = NULL;
+	uint8_t len;
+
+	len = strlen(cmd);
+	ret = strstr(UART_Buffer, cmd);
+
+	if (ret){
+		sprintf(RESP_Buffer, "%s", ret + len);
+		return  RESP_Buffer;
+	}
+
+	return ret;
+}

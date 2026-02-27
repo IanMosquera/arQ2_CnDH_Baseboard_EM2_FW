@@ -19,6 +19,7 @@ extern char RESP_Buffer[];
 bool UTL_CompareEqual(char *pStr1, char *pStr2);
 
 char *Get_Desired_Response(char *Respons, uint8_t timeout);
+char *SaveCommandDetected(char *cmd);
 char UTL_GetChar(uint8_t timeout);
 
 void Reset_PMCU(void);

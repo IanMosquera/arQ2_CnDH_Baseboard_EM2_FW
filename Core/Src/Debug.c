@@ -44,7 +44,6 @@ uint8_t Debug_Mode(void){
 			xprintf(PC, "\r\nFIRMWARE Version: %s\r\n", RESP_Buffer);
 			HAL_Delay(500);
 		}
-
 	}
 
   // Action while in state
@@ -247,19 +246,14 @@ uint8_t Change_SendingTime(void){
 		}
 	} while(invalid);
 
-	xprintf(PMCU, "S_SDT\r\n", x);
+	xprintf(PMCU, "S_SDT:%d\r\n", x);
 	if (!Get_Desired_Response("ACK", 10)){
 		return e_NONE;
 	}
 
-	HAL_Delay(1000);
-	xprintf(PMCU, "V:%u\r\n", x);
-	if (!Get_Desired_Response("ACK:", 10)){
-		return e_NONE;
-	}
 
 	HAL_Delay(1000);
-	xprintf(PC,  "New sending time: %d\r\n", atoi(RESP_Buffer));
+	xprintf(PC,  "New sending time: %d\r\n", x);
 	Clear_USB_Buffers();
 
 	return e_NONE;
