@@ -247,14 +247,12 @@ uint8_t Change_SendingTime(void){
 	} while(invalid);
 
 	xprintf(PMCU, "S_SDT:%d\r\n", x);
-	if (!Get_Desired_Response("ACK", 10)){
+	if (Get_Desired_Response("ACK", 10)){
+		HAL_Delay(1000);
+		xprintf(PC,  "New sending time: %d\r\n\r\n", x);
+		Clear_USB_Buffers();
 		return e_NONE;
 	}
-
-
-	HAL_Delay(1000);
-	xprintf(PC,  "New sending time: %d\r\n", x);
-	Clear_USB_Buffers();
 
 	return e_NONE;
 }

@@ -205,10 +205,10 @@ uint8_t IDLE_State(void){
 	}*/
 
 
-	if ((MIN == 27) && (SEC < 2)){
+	//if ((MIN == 27) && (SEC < 2)){
 		//HAL_GPIO_WritePin(GPIOx, GPIO_Pin, PinState);
-		return e_CHCK;
-	}
+		//return e_CHCK;
+	//}
 
 	return e_NONE;
 }
