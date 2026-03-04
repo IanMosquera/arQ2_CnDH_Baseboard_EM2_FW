@@ -47,10 +47,7 @@ uint8_t Debug_Mode(void){
 	}
 
   // Action while in state
-  for (uint8_t i = 0; i < 26; i++){
-  	xprintf(PC, "%s\r\n", Settings_Menu[i]);
-  	HAL_Delay(5);
-  }
+	Print_Setting_Menu();
 
 	do{
 		xprintf(PC, "Enter choice: (A-Z)\r\n");
@@ -93,18 +90,18 @@ uint8_t Debug_Mode(void){
 			break;
 		}
 		case 'D':{
-			Change_SendingTime();
+			DBG_Change_SendingTime();
 			break;
 		}
 		case 'E':{	//No settings assigned
 			break;
 		}
 		case 'F':{
-			//DBG_ServerNumber_Change();
+			DBG_Change_ServerNumber();
 			break;
 		}
 		case 'G':{
-			//DBG_RegisterNumbers_List();
+			DBG_List_Registered_Numbers();
 			break;
 		}
 		case 'H':{
@@ -113,7 +110,7 @@ uint8_t Debug_Mode(void){
 			break;
 		}
 		case 'I':{
-			//DBG_DateTime_Set();
+			DBG_Change_DateTime();
 			break;
 		}
 		case 'J':{
@@ -127,7 +124,7 @@ uint8_t Debug_Mode(void){
 			break;
 		}
 		case 'M':{
-			//DBG_Password_Change();
+			DBG_Change_Password();
 			break;
 		}
 		case 'N':{
@@ -171,10 +168,11 @@ uint8_t Debug_Mode(void){
 		}
 		case 'Z':{
 			f_USB = false;
-			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 			f_Disable_PMCU_MSG = false;
-			Clear_PMCU_Flags();
 			f_InitState = true;
+
+			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+			Clear_PMCU_Flags();
 
 			xprintf(PC, "Exiting Debug mode\r\n");
 			HAL_Delay(200);
@@ -188,10 +186,11 @@ uint8_t Debug_Mode(void){
 
 		default:{
 			f_USB = false;
-			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 			f_Disable_PMCU_MSG = false;
-			Clear_PMCU_Flags();
 			f_InitState = true;
+
+			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+			Clear_PMCU_Flags();
 			xprintf(PMCU, "EXIT\r\n");
 			HAL_Delay(200);
 
@@ -205,7 +204,170 @@ uint8_t Debug_Mode(void){
 }
 
 
-uint8_t Change_SendingTime(void){
+
+
+
+uint8_t DBG_Change_DateTime(void){
+	bool inV_YY = false;
+	bool inV_MM = false;
+	bool inV_DD = false;
+	bool inV_hh = false;
+	bool inV_mm = false;
+	bool inV_ss = false;
+	bool inV_SP = false;
+	bool invalid = false;
+	uint8_t r = 0;
+	uint8_t YY,MM,DD,hh,mm,ss;
+
+	xprintf(PC, "Current Date and Time: ");
+	HAL_Delay(200);
+
+	xprintf(PMCU, "G_DTM\r\n");
+	if (!Get_Desired_Response("DTM:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "%s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+
+	Print_Modify_Cancel();
+	HAL_Delay(100);
+	if (ModifyCancelled(3))
+		return e_NONE;
+
+	do{
+		xprintf(PC, "Enter DateTime in YY/MM/DD,hh:mm:ss format\r\n^^");
+		UTL_GetString(60);
+
+		if (USB_BUFFER[2]	!= '/' ||
+				USB_BUFFER[5]	!= '/' ||
+				USB_BUFFER[8]	!= ',' ||
+				USB_BUFFER[11]!= ':' ||
+				USB_BUFFER[14]!= ':'){	//Invalid separator
+			inV_SP = true;
+		}
+		else{
+			inV_SP = false;
+		}
+
+		YY = (atoi(&USB_BUFFER[0])*10) + (atoi(&USB_BUFFER[1]));
+		if (YY < 25)
+			inV_YY = true;
+
+		MM = (atoi(&USB_BUFFER[3])*10) + (atoi(&USB_BUFFER[4]));
+		if (MM < 1 || MM > 12)
+			inV_MM = true;
+
+		DD = (atoi(&USB_BUFFER[6])*10) + (atoi(&USB_BUFFER[7]));
+		if (DD < 1 || DD > 31)
+			inV_DD = true;
+
+		hh = (atoi(&USB_BUFFER[9])*10) + (atoi(&USB_BUFFER[10]));
+		if (hh < 0 || hh > 24)
+			inV_hh = true;
+
+		mm = (atoi(&USB_BUFFER[12])*10) + (atoi(&USB_BUFFER[13]));
+		if (mm < 0 || mm > 60)
+			inV_mm = true;
+
+		ss = (atoi(&USB_BUFFER[15])*10) + (atoi(&USB_BUFFER[16]));
+		if (ss < 1 || ss > 60)
+			inV_ss = true;
+
+		if (inV_SP ||
+				inV_YY || inV_MM || inV_DD ||
+				inV_hh || inV_mm || inV_ss)
+			invalid = true;
+		else
+			invalid = false;
+
+		if (invalid){
+			Print_InvalidInput(USB_BUFFER);
+			if (++r == 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n^^");
+				HAL_Delay(500);
+				return e_NONE;
+			}
+		}
+	}
+	while(invalid);
+
+	xprintf(PMCU, "S_DTM:%s\r\n", USB_BUFFER);
+	if (Get_Desired_Response("ACK", 10)){
+		HAL_Delay(1000);
+		xprintf(PC,  "New Date and Time: %s\r\n\r\n", USB_BUFFER);
+		Clear_USB_Buffers();
+		return e_NONE;
+	}
+
+	return e_NONE;
+}
+
+
+
+
+
+
+uint8_t DBG_Change_Password(void){
+	bool invalid = false;
+	uint8_t x, r = 0;
+
+	xprintf(PC, "Current password: ");
+	HAL_Delay(200);
+
+	xprintf(PMCU, "G_PWD\r\n");
+	if (!Get_Desired_Response("PWD:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "%s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+
+	Print_Modify_Cancel();
+	HAL_Delay(100);
+	if (ModifyCancelled(3))
+		return e_NONE;
+
+	do{
+		xprintf(PC, "Enter new password [max 8 char length]\r\n");
+		UTL_GetString(60);
+
+		if ((USB_BUFFER[8] != '\r') ||
+				(USB_BUFFER[9] != '\n') ||
+				(USB_BUFFER[10] != '\0'))
+			invalid = true;
+		else
+			invalid = false;
+
+		if (invalid){
+			Print_InvalidInput(USB_BUFFER);
+			if (++r == 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
+				HAL_Delay(500);
+				return e_NONE;
+			}
+		}
+	} while(invalid);
+
+	xprintf(PMCU, "S_PWD:%s\r\n", USB_BUFFER);
+	if (Get_Desired_Response("ACK", 10)){
+		HAL_Delay(1000);
+		xprintf(PC,  "New password: %s\r\n\r\n", x);
+		Clear_USB_Buffers();
+		return e_NONE;
+	}
+
+	return e_NONE;
+}
+
+
+
+
+
+
+uint8_t DBG_Change_SendingTime(void){
 	bool invalid = false;
 	uint8_t x, r = 0;
 
@@ -221,7 +383,7 @@ uint8_t Change_SendingTime(void){
 	HAL_Delay(100);
 
 
-	xprintf(PC, "(M)odify or (C)ancel?\r\n");
+	Print_Modify_Cancel();
 	HAL_Delay(100);
 	if (ModifyCancelled(3))
 		return e_NONE;
@@ -258,6 +420,117 @@ uint8_t Change_SendingTime(void){
 }
 
 
+
+
+
+
+/******************************************************************************
+  * @brief	Change Server Number
+  * @param	None
+  * @return Events
+  * @FVer		1.2.00
+  * ***************************************************************************
+*/
+uint8_t DBG_Change_ServerNumber(void){
+	bool invalid = false;
+	uint8_t r = 0;
+
+	xprintf(PC, "Current Server Number: ");
+	HAL_Delay(200);
+
+	xprintf(PMCU, "G_SVR\r\n");
+	if (!Get_Desired_Response("SVR:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "%s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+
+	Print_Modify_Cancel();
+	HAL_Delay(100);
+	if (ModifyCancelled(3))
+		return e_NONE;
+
+	do{
+		xprintf(PC, "Enter phone number in 09XX format\r\n");
+		UTL_GetString(60);
+
+		if ((USB_BUFFER[0] < '0') || (USB_BUFFER[0] > '9') ||
+				(USB_BUFFER[1] < '0') || (USB_BUFFER[1] > '9') ||
+				(USB_BUFFER[2] < '0') || (USB_BUFFER[2] > '9') ||
+				(USB_BUFFER[3] < '0') || (USB_BUFFER[3] > '9') ||
+				(USB_BUFFER[4] < '0') || (USB_BUFFER[4] > '9') ||
+				(USB_BUFFER[5] < '0') || (USB_BUFFER[5] > '9') ||
+				(USB_BUFFER[6] < '0') || (USB_BUFFER[6] > '9') ||
+				(USB_BUFFER[7] < '0') || (USB_BUFFER[7] > '9') ||
+				(USB_BUFFER[8] < '0') || (USB_BUFFER[8] > '9') ||
+				(USB_BUFFER[9] < '0') || (USB_BUFFER[9] > '9') ||
+				(USB_BUFFER[10]< '0') || (USB_BUFFER[10]> '9') ||
+				(USB_BUFFER[0]=='\0'))
+			invalid = true;
+		else
+			invalid = false;
+
+		if (invalid){
+			Print_InvalidInput(USB_BUFFER);
+			if (++r == 3){
+				xprintf(PC, "Max retries! Exiting DEBUG mode\r\n");
+				HAL_Delay(500);
+				return e_NONE;
+			}
+		}
+	} while(invalid);
+
+	xprintf(PMCU, "S_SVR:%s\r\n", USB_BUFFER);
+	if (Get_Desired_Response("ACK", 10)){
+		HAL_Delay(1000);
+		xprintf(PC,  "New Server Number: %s\r\n\r\n", USB_BUFFER);
+		Clear_USB_Buffers();
+		return e_NONE;
+	}
+
+	return e_NONE;
+}
+
+
+
+
+
+
+
+uint8_t DBG_List_Registered_Numbers(void){
+	xprintf(PC, "Current Registered Numbers\r\n");
+	HAL_Delay(200);
+
+	xprintf(PMCU, "G_RN1\r\n");
+	if (!Get_Desired_Response("RN1:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "1) %s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+
+	xprintf(PMCU, "G_RN2\r\n");
+	if (!Get_Desired_Response("RN2:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "2) %s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+
+	xprintf(PMCU, "G_RN3\r\n");
+	if (!Get_Desired_Response("RN3:", 10)){
+		xprintf(PC, "Failed to retrieve\r\n");
+		return e_NONE;
+	}
+	xprintf(PC, "3) %s\r\n", RESP_Buffer);
+	HAL_Delay(100);
+
+	return e_NONE;
+}
 
 
 
@@ -332,8 +605,6 @@ void Print_Modify_Cancel(void){
 
 
 void Print_Setting_Menu(void){
-	xprintf(PC, "\nFIRMWARE Version: %s\r\n", g_firmwareVer);
-
   for (uint8_t i = 0; i < 26; i++){
   	xprintf(PC, "%s\r\n", Settings_Menu[i]);
   	HAL_Delay(5);
