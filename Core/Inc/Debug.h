@@ -17,7 +17,10 @@ uint8_t Debug_Mode(void);
 uint8_t DBG_Change_DateTime(void);
 uint8_t DBG_Change_Password(void);
 uint8_t DBG_Change_SendingTime(void);
+uint8_t DBG_Change_SensorConfig(void);
 uint8_t DBG_Change_ServerNumber(void);
+uint8_t DBG_Change_SIMNumber(void);
+uint8_t DBG_Delete_RegisteredNumber(void);
 uint8_t DBG_List_Registered_Numbers(void);
 
 void Print_Modify_Cancel(void);
