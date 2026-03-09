@@ -27,15 +27,7 @@ typedef enum
 	DEC
 }e_Month_Name;
 
-extern uint8_t ctr;
-extern uint8_t DAY;
-extern uint8_t HRS_OLD;
-extern uint8_t HRS;
-extern uint8_t MIN;
-extern uint8_t MON;
-extern uint8_t PREV_YRS;
-extern uint8_t SEC;
-extern uint8_t YRS;
+
 
 void TMR_SEC_Count(void);
 uint8_t IS_LEAP(uint8_t Year);

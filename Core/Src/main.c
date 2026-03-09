@@ -18,16 +18,19 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
+#include "gpio.h"
 #include "rtc.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
-#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ARQ.h"
 #include "StateMachine.h"
-#include "stdarg.h"
+#include "DateTime.h"
+
 #include "stdbool.h"
 #include "string.h"
 #include "Timer.h"
@@ -54,29 +57,8 @@
 
 /* USER CODE BEGIN PV */
 
-arQ_t 	arQ;
 
-bool BLE_INIT = false;
-bool f_PMCU_MSG = false;
-bool f_PMCU_CMD = false;
-bool f_PMCU_QRY = false;
-bool f_USB = false;
-bool f_InitState = true;
-bool f_Disable_PMCU_MSG = false;
 
-uint8_t g_RGAccuTipsData;
-uint8_t g_RGTipsData;
-
-char strDisplay[250];
-char TEMP_Buffer[100];
-char UART_Buffer[100];
-char USB_BUFFER[255];
-
-uint8_t CHAR_CTR;
-uint8_t UART_CHAR;
-uint8_t Mili_Sec_Ctr = 0;
-
-uint16_t Process_Ctr = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -222,87 +204,6 @@ void PeriphCommonClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void Check_Primary_Board(void)
-{
-	if (arQ.Flg.RETURN_FLAG == false)
-	{
-		Log_Error(arQ.Buf.RETURN_VAL);
-		arQ.Flg.RETURN_FLAG = true;
-	}
-}
-
-
-
-/*void MAIN_PROGRAM(void)
-{
-	WatchDog_Reset();
-
-	USBSerial_Interrupt_Check();
-
-	//xprintf(PC, "Main Program Running\n");
-
-	HAL_Delay(10);
-	RTC_ShowDateTime();
-
-	Main_Prog_LED_Stat();
-
-	HAL_Delay(1000);
-}*/
-
-
-/*void BLE_PROGRAM(void)
-{
-	if (BLE_INIT == false)
-	{
-		MX_APPE_Init();
-		BLE_INIT = true;
-	}
-	MX_APPE_Process();
-}*/
-
-
-void RTC_Init(void)
-{
-	RTC_TimeTypeDef sTime = {0};
-	RTC_DateTypeDef sDate = {0};
-
-	RTC_Assign_Date(&sDate);
-	RTC_Assign_Time(&sTime);
-}
-
-void RTC_Assign_Date(RTC_DateTypeDef *pDate)
-{
-	pDate->WeekDay		= RTC_WEEKDAY_THURSDAY;
-	pDate->Month			= RTC_MONTH_MARCH;
-	pDate->Date				= 0x03;
-	pDate->Year				= 0x25;
-	if (HAL_RTC_SetDate(&hrtc, pDate, RTC_FORMAT_BCD) != HAL_OK) Error_Handler();
-}
-
-void RTC_Assign_Time(RTC_TimeTypeDef *pTime)
-{
-	pTime->Hours 			= 0x09;
-	pTime->Minutes		=	0x00;
-	pTime->Seconds		= 0x00;
-	pTime->SubSeconds	= 0x00;
-	pTime->DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-	pTime->StoreOperation = RTC_STOREOPERATION_RESET;
-	if (HAL_RTC_SetTime(&hrtc, pTime, RTC_FORMAT_BCD) != HAL_OK) Error_Handler();
-}
-
-void RTC_ShowDateTime(void)
-{
-  RTC_DateTypeDef sdatestructureget;
-  RTC_TimeTypeDef stimestructureget;
-
-  HAL_RTC_GetDate(&hrtc, &sdatestructureget, RTC_FORMAT_BIN);
-  HAL_RTC_GetTime(&hrtc, &stimestructureget, RTC_FORMAT_BIN);
-
-  xprintf(PC, "Date and Time: %02d/%02d/%02d,%02d:%02d:%02d\r\n",
-  		sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date,
-  		stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
-}
-
 
 void BLE_Mode_LED_Stat(void)
 {
@@ -323,8 +224,7 @@ void Main_Prog_LED_Stat(void)
 }
 
 
-void WatchDog_Reset(void)
-{
+void WatchDog_Reset(void){
 	xprintf(PC, "Resetting Watchdog\r\n");
 	HAL_Delay(10);
 	//HAL_IWDG_Refresh(&hiwdg);
@@ -333,85 +233,10 @@ void WatchDog_Reset(void)
 
 
 
-void Clear_USB_Buffers(void)
-{
-	memset(USB_BUFFER, '\0', 255);
-	f_USB = false;
-}
 
 
 
-void xprintf(uint8_t stream, char *FormatString, ...){
-	va_list args;
-	char *sval;
-	int  ival;
-	float fval;
-	char tempSTR[100];
-	char cdcSTR[100];
-	char format[10];
-	int8_t i, j, x;
-	uint8_t len;
 
-	len = strlen(FormatString);
-	va_start(args, FormatString);
-
-	for (i = 0, j = 0; j < len; i++, j++)
-	{
-		tempSTR[i] = FormatString[j];
-
-		if (FormatString[j] == '%')
-		{
-			tempSTR[i] = '\0';
-			j++;
-
-			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-
-			HAL_Delay(50);
-			x = 0;
-			format[x++] = '%';
-
-			if (FormatString[j] != 's')
-			{
-				do format[x++] = FormatString[j++];
-				while (FormatString[j] != 'd' && FormatString[j] != 'f');
-			}
-
-			if (FormatString[j] == 's')
-			{
-				sval = va_arg(args, char *);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
-			}
-			else if (FormatString[j] == 'd')
-			{
-				format[x] = 'd';
-				format[x+1] = '\0';
-				ival = va_arg(args, int);
-				sprintf(cdcSTR, format, ival);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-			}
-			else if (FormatString[j] == 'f')
-			{
-				format[x] = 'f';
-				format[x+1] = '\0';
-				fval = va_arg(args, double);
-				sprintf(cdcSTR, format, fval);
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
-			}
-			HAL_Delay(50);
-			i = -1;
-		}
-	}
-	tempSTR[i] = '\0';
-	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-	va_end(args);
-}
 
 
 void Log_Error(char *pBuffer)
@@ -433,20 +258,30 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
 
 
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == PMCU_INT_Pin)
+		f_PMCU_Responds = true;
+}
+
+
+
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == arQTimer){
+
 		if (Mili_Sec_Ctr == 20){
 			Mili_Sec_Ctr = 0;
 			TMR_SEC_Count();
 		}
-		else Mili_Sec_Ctr++;
+		else	Mili_Sec_Ctr++;
+
 
 		// Task Counter Timer
-		if (Process_Ctr >= 65000)
-			Process_Ctr = 0;
-		else
-			Process_Ctr++;
+		if (Process_Ctr >= 65000)	Process_Ctr = 0;
+		else	Process_Ctr++;
+
+
+		PMCU_Check();
 	}
 }
 
@@ -498,10 +333,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			f_PMCU_QRY = true;
 		}
 
-		//if (f_Disable_PMCU_MSG ==  false){
-			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
-		//}
-
+		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 	}
 }
 

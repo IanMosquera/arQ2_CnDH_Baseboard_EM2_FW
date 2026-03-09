@@ -174,7 +174,6 @@ uint8_t Debug_Mode(void){
 		}
 		case 'Z':{
 			f_USB = false;
-			f_Disable_PMCU_MSG = false;
 			f_InitState = true;
 
 			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
@@ -192,7 +191,6 @@ uint8_t Debug_Mode(void){
 
 		default:{
 			f_USB = false;
-			f_Disable_PMCU_MSG = false;
 			f_InitState = true;
 
 			HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);

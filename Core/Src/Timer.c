@@ -4,18 +4,10 @@
  *  Created on: Dec 18, 2025
  *      Author: IanCMosquera
  */
+#include "ARQ.h"
+#include "DateTime.h"
 #include "Timer.h"
 
-
-uint8_t 	ctr;
-uint8_t 	DAY;
-uint8_t 	HRS_OLD;
-uint8_t 	HRS;
-uint8_t 	MIN;
-uint8_t 	MON;
-uint8_t 	PREV_YRS;
-uint8_t 	SEC;
-uint8_t 	YRS;
 
 
 
@@ -43,8 +35,8 @@ void TMR_SEC_Count(void)
 				++DAY;
 
 				if((DAY == 29 &&  MON == FEB && !IS_LEAP(YRS)) ||
-					(DAY == 30 &&  MON == FEB)    ||
-					(DAY == 31 && (MON == APR		||
+					 (DAY == 30 &&  MON == FEB)    ||
+					 (DAY == 31 && (MON == APR		||
 										MON == JUN   	||
 										MON == SEP   	||
 										MON == NOV))	||

@@ -6,6 +6,7 @@
  */
 
 #include "ARQ.h"
+#include "DateTime.h"
 #include "Debug.h"
 #include "StateMachine.h"
 #include "stdbool.h"
@@ -13,6 +14,7 @@
 #include "string.h"
 #include "Timer.h"
 #include "UtilityFunctions.h"
+
 #include <usart.h>
 
 e_Events g_CurrentEvent;
@@ -135,7 +137,6 @@ void STM_StateManager(uint8_t event){
 uint8_t Filter_USB_String(void){
 	if (UTL_CompareEqual(USB_BUFFER, "DEBUG\r\n")){
 		Clear_USB_Buffers();
-		f_Disable_PMCU_MSG = true;
 		f_InitState = true;
 		return e_DBUG;
 	}
@@ -144,74 +145,6 @@ uint8_t Filter_USB_String(void){
 }
 
 
-
-
-
-uint8_t IDLE_State(void){
-	// Initial State
-	if (f_InitState){
-	  CHAR_CTR = 0;
-	  HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
-		f_InitState = false;
-	}
-
-	if (f_USB){
-		f_USB = false;
-		return Filter_USB_String();
-	}
-
-	if (f_PMCU_MSG){
-		xprintf(PC, "%s", UART_Buffer);
-		memset(UART_Buffer, '\0', 100);
-		f_PMCU_MSG = false;
-  }
-
-	if (f_PMCU_QRY){
-		if (strcmp(UART_Buffer, "Status") == 0){
-			xprintf(PMCU, "Attached\r\n");
-			f_PMCU_QRY = false;
-		}
-	}
-
-	// "S_RG1:100$$"
-	if (f_PMCU_CMD){
-		if (UART_Buffer[0] == 'S'){ //Save Data
-			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				char val[20];
-				uint8_t i = 6;
-				do{
-					val[i-6] = UART_Buffer[i];
-					i++;
-				}while(UART_Buffer[i] != '\0');
-				g_RGAccuTipsData = atoi(val);
-				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
-			}
-		}
-
-		if (UART_Buffer[0] == 'G'){ //Get Data
-			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				xprintf(PMCU, "RG1:%d\r\n", g_RGAccuTipsData);
-			}
-		}
-
-		f_PMCU_CMD = false;
-	}
-
-	/*if (SEC%1 == 0){
-		xprintf(PC, "IDLE State: %02d:%02d:%02d\r\n", HRS,MIN,SEC);
-		HAL_Delay(500);
-	}*/
-
-
-	//if ((MIN == 27) && (SEC < 2)){
-		//HAL_GPIO_WritePin(GPIOx, GPIO_Pin, PinState);
-		//return e_CHCK;
-	//}
-
-	return e_NONE;
-}
 
 
 
@@ -259,6 +192,10 @@ uint8_t CHECK_State(void){
 
 
 
+
+
+
+
 /******************************************************************************
   * @brief	Debug State code
   * @param	None
@@ -275,10 +212,103 @@ uint8_t DEBUG_State(void){
 
 
 
-uint8_t INIT_State(void){
-	HAL_TIM_Base_Start_IT(arQTimer);
+uint8_t IDLE_State(void){
+	// Initial State
+	if (f_InitState){
+	  CHAR_CTR = 0;
+	  HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+		f_InitState = false;
+	}
+
+
+	// USB input Check
+	if (f_USB){
+		f_USB = false;
+		return Filter_USB_String();
+	}
+
+
+
+	//
+	if (f_PMCU_MSG){
+		xprintf(PC, "%s", UART_Buffer);
+		memset(UART_Buffer, '\0', 100);
+		f_PMCU_MSG = false;
+  }
+
+	if (f_PMCU_QRY){
+		if (strcmp(UART_Buffer, "Status") == 0){
+			xprintf(PMCU, "Attached\r\n");
+			f_PMCU_QRY = false;
+		}
+	}
+
+	// "S_RG1:100$$"
+	if (f_PMCU_CMD){
+		if (UART_Buffer[0] == 'S'){ //Save Data
+			strncpy(g_variable, UART_Buffer+2, 3);
+			if (strcmp(g_variable, "RG1")==0){
+				char val[20];
+				uint8_t i = 6;
+				do{
+					val[i-6] = UART_Buffer[i];
+					i++;
+				}while(UART_Buffer[i] != '\0');
+				g_RGAccuTipsData = atoi(val);
+				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
+			}
+		}
+
+		if (UART_Buffer[0] == 'G'){ //Get Data
+			strncpy(g_variable, UART_Buffer+2, 3);
+			if (strcmp(g_variable, "RG1")==0){
+				xprintf(PMCU, "RG1:%d\r\n", g_RGAccuTipsData);
+			}
+		}
+
+		f_PMCU_CMD = false;
+	}
+
+
+
+	/*if (SEC%1 == 0){
+		xprintf(PC, "IDLE State: %02d:%02d:%02d\r\n", HRS,MIN,SEC);
+		HAL_Delay(500);
+	}*/
+
+
+
 	return e_NONE;
 }
+
+
+
+uint8_t INIT_State(void){
+	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+	HAL_TIM_Base_Start_IT(arQTimer);
+
+	if (Retry(Get_DateTime_From_PMCU, 3)){
+		DTM_DateTime_Set(RESP_Buffer);
+		xprintf(PC, "Date Time: %s\r\n", g_DateTime);
+	}
+
+
+
+	return e_NONE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

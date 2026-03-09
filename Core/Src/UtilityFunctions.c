@@ -6,6 +6,8 @@
  */
 #include "Timer.h"
 #include "UtilityFunctions.h"
+#include "ARQ.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <usart.h>
@@ -43,7 +45,7 @@ char UTL_GetChar(uint8_t timeout){
 
 
 void Reset_PMCU(void){
-	// Reset PMCU
+	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
 }
 
 
