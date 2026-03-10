@@ -280,7 +280,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (Process_Ctr >= 65000)	Process_Ctr = 0;
 		else	Process_Ctr++;
 
-
 		PMCU_Check();
 	}
 }
@@ -315,21 +314,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
 			f_PMCU_MSG = true;
 		}
 
 		if ((TEMP_Buffer[CHAR_CTR-1] == '$') && (TEMP_Buffer[CHAR_CTR-2] == '$')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
 			f_PMCU_CMD = true;
 		}
 
 		if ((TEMP_Buffer[CHAR_CTR-1] == '?') && (TEMP_Buffer[CHAR_CTR-2] == '?')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
 			f_PMCU_QRY = true;
 		}
 

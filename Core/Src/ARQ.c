@@ -21,12 +21,13 @@
 #include <usbd_cdc_if.h>
 
 
-
+bool f_CheckPMCU = false;
 bool f_InitState = true;
 bool f_PMCU_Responds = false;
 bool f_PMCU_CMD = false;
 bool f_PMCU_MSG = false;
 bool f_PMCU_QRY = false;
+bool f_Printed = false;
 bool f_USB = false;
 
 char g_DateTime[18];
@@ -216,15 +217,26 @@ void Interrupt_PMCU(void){
 
 
 void PMCU_Check(void){
-	if ((SEC > 20) && (SEC < 25)){
+
+
+
+	if ((SEC > 25) && (SEC < 31)){
+		f_CheckPMCU = true;
+		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
 		Interrupt_PMCU();
-
-
 		if ((SEC == 24) && (!f_PMCU_Responds)){
-			Reset_PMCU();
+			//Reset_PMCU();
 		}
+
+		if (f_PMCU_Responds){
+
+			//HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		}
+
 	}
 	else{
+		f_CheckPMCU = false;
+		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
 		Interrupt_PMCU();
 		f_PMCU_Responds =  false;
 	}

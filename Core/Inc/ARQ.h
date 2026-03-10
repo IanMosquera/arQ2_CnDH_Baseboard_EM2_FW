@@ -21,12 +21,15 @@ typedef enum{
 
 #define arQTimer &htim17
 
+
+extern bool f_CheckPMCU;
 extern bool f_InitState;
 extern bool f_PMCU_CheckTime;
 extern bool f_PMCU_CMD;
 extern bool f_PMCU_MSG;
 extern bool f_PMCU_QRY;
 extern bool f_PMCU_Responds;
+extern bool f_Printed;
 extern bool f_USB;
 
 extern char g_DateTime[];

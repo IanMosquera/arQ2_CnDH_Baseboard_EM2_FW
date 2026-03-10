@@ -258,6 +258,8 @@ uint8_t IDLE_State(void){
 				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
 			}
 		}
+		f_PMCU_CMD = false;
+
 
 		if (UART_Buffer[0] == 'G'){ //Get Data
 			strncpy(g_variable, UART_Buffer+2, 3);
@@ -266,15 +268,15 @@ uint8_t IDLE_State(void){
 			}
 		}
 
-		f_PMCU_CMD = false;
+
 	}
 
 
 
-	/*if (SEC%1 == 0){
-		xprintf(PC, "IDLE State: %02d:%02d:%02d\r\n", HRS,MIN,SEC);
-		HAL_Delay(500);
-	}*/
+	if (SEC % 5 == 0){
+
+	}
+
 
 
 
@@ -286,11 +288,11 @@ uint8_t IDLE_State(void){
 uint8_t INIT_State(void){
 	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
 	HAL_TIM_Base_Start_IT(arQTimer);
-
-	if (Retry(Get_DateTime_From_PMCU, 3)){
+	DTM_DateTime_Set("26/02/04,15:13:00");
+/*	if (Retry(Get_DateTime_From_PMCU, 3)){
 		DTM_DateTime_Set(RESP_Buffer);
 		xprintf(PC, "Date Time: %s\r\n", g_DateTime);
-	}
+	}*/
 
 
 
