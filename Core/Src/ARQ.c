@@ -217,13 +217,19 @@ void Interrupt_PMCU(void){
 
 
 void PMCU_Check(void){
+	if ((SEC > 25) && (SEC < 31))
+		f_CheckPMCU = true;
+	else
+		f_CheckPMCU = false;
 
 
 
-	if ((SEC > 25) && (SEC < 31)){
+
+/*	if ((SEC > 25) && (SEC < 31)){
 		f_CheckPMCU = true;
 		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
 		Interrupt_PMCU();
+
 		if ((SEC == 24) && (!f_PMCU_Responds)){
 			//Reset_PMCU();
 		}
@@ -237,9 +243,9 @@ void PMCU_Check(void){
 	else{
 		f_CheckPMCU = false;
 		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-		Interrupt_PMCU();
+		Uninterrupt_PMCU();
 		f_PMCU_Responds =  false;
-	}
+	}*/
 }
 
 

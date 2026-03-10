@@ -229,6 +229,25 @@ uint8_t IDLE_State(void){
 
 
 
+
+	// Fault Detection
+	if (f_CheckPMCU){
+		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
+		Interrupt_PMCU();
+
+		if (f_PMCU_Responds){
+			//xprintf(PC, "Responded\r\n");
+			f_PMCU_Responds = false;
+			HAL_Delay(200);
+		}
+
+	}else{
+		HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
+		Uninterrupt_PMCU();
+	}
+
+
+
 	//
 	if (f_PMCU_MSG){
 		xprintf(PC, "%s", UART_Buffer);
@@ -243,7 +262,7 @@ uint8_t IDLE_State(void){
 		}
 	}
 
-	// "S_RG1:100$$"
+	//
 	if (f_PMCU_CMD){
 		if (UART_Buffer[0] == 'S'){ //Save Data
 			strncpy(g_variable, UART_Buffer+2, 3);
@@ -267,18 +286,7 @@ uint8_t IDLE_State(void){
 				xprintf(PMCU, "RG1:%d\r\n", g_RGAccuTipsData);
 			}
 		}
-
-
 	}
-
-
-
-	if (SEC % 5 == 0){
-
-	}
-
-
-
 
 	return e_NONE;
 }
