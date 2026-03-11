@@ -280,11 +280,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (Process_Ctr >= 65000)	Process_Ctr = 0;
 		else	Process_Ctr++;
 
+
+		// PMCU Responds
+		if (SEC == 32)
+			f_PMCU_Responds = false;
+
+
+
 		//PMCU_Check();
-		if ((SEC > 25) && (SEC < 31))
+		if ((SEC > 25) && (SEC < 31)){
 			f_CheckPMCU = true;
-		else
-			f_CheckPMCU = false;
+		}
+		f_CheckPMCU = false;
+
+
+		// Fault Counter
+		if ((SEC == 30) && (!f_PMCU_Responds)){
+			g_Fault_Ctr++;
+		}
+		g_Fault_Ctr = 0;
+
 	}
 }
 

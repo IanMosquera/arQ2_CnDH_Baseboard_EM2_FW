@@ -41,6 +41,7 @@ extern char USB_BUFFER[];
 
 extern uint16_t Process_Ctr;
 extern uint8_t CHAR_CTR;
+extern uint8_t g_Fault_Ctr;
 extern uint8_t g_RGAccuTipsData;
 extern uint8_t g_RGTipsData;
 extern uint8_t Mili_Sec_Ctr;

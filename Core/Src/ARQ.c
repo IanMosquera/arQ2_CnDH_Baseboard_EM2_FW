@@ -39,6 +39,7 @@ char USB_BUFFER[255];
 uint16_t Process_Ctr = 0;
 
 uint8_t CHAR_CTR;
+uint8_t g_Fault_Ctr = 0;
 uint8_t g_RGAccuTipsData;
 uint8_t g_RGTipsData;
 uint8_t g_SendingTime;
@@ -209,7 +210,7 @@ bool Retry(bool (*func)(void), uint8_t maxRetry){
 
 
 void Interrupt_PMCU(void){
-	HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+
 }
 
 
@@ -253,7 +254,7 @@ void PMCU_Check(void){
 
 
 void Uninterrupt_PMCU(void){
-	HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+
 }
 
 
