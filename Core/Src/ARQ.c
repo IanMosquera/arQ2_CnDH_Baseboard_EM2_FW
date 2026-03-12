@@ -22,6 +22,7 @@
 
 
 bool f_CheckPMCU = false;
+bool f_Fault_Incremented = false;
 bool f_InitState = true;
 bool f_PMCU_Responds = false;
 bool f_PMCU_CMD = false;

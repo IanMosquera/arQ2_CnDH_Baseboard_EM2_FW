@@ -234,7 +234,9 @@ uint8_t IDLE_State(void){
 	if (f_CheckPMCU){
 		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
 	}
-	HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+	else{
+		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+	}
 
 
 	// NRST_PMCU
@@ -242,6 +244,7 @@ uint8_t IDLE_State(void){
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+		g_Fault_Ctr = 0;
 	}
 
 

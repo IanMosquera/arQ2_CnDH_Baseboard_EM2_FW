@@ -23,6 +23,7 @@ typedef enum{
 
 
 extern bool f_CheckPMCU;
+extern bool f_Fault_Incremented;
 extern bool f_InitState;
 extern bool f_PMCU_CheckTime;
 extern bool f_PMCU_CMD;
