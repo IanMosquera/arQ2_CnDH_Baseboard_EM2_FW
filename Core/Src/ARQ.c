@@ -32,6 +32,7 @@ bool f_Printed = false;
 bool f_USB = false;
 
 char g_DateTime[18];
+char g_SIMNum[12];
 char g_firmwareVer[4];
 char TEMP_Buffer[100];
 char UART_Buffer[100];
@@ -76,6 +77,23 @@ void Clear_USB_Buffers(void)
 	memset(USB_BUFFER, '\0', 255);
 	f_USB = false;
 }
+
+
+void ExtractValue(char *dest, char *source){
+	uint8_t i = 6;
+	do{
+		dest[i-6] = source[i];
+		i++;
+	}while(source[i] != '\0');
+}
+
+
+void ExtractVariable(char *dest, char *source){
+	strncpy(dest, source+2, 3);
+}
+
+
+
 
 
 
@@ -309,7 +327,21 @@ void RTC_ShowDateTime(void)
 
 
 
+uint8_t SetVariable(char *variable, char *value){
+	if (UTL_CompareEqual(variable, "DTM")){
+		DTM_DateTime_Set(value);
+		DTM_DateTime_Get();
+		xprintf(PC, "Date and Time Synched: %s\r\n", g_DateTime);
+	}
 
+	else if (UTL_CompareEqual(variable, "SIM")){
+		strcpy(g_SIMNum, value);
+		xprintf(PC, "Sim Number Synched: %s\r\n", g_SIMNum);
+	}
+
+	HAL_Delay(200);
+	return 0;
+}
 
 
 

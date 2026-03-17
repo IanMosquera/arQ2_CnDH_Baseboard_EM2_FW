@@ -57,6 +57,7 @@ s_nextState nState[] = {
 
 
 char g_variable[4];
+char g_Value[30];
 
 uint8_t STM_ActionWhileInState(uint8_t state){
 	switch (state){
@@ -266,7 +267,10 @@ uint8_t IDLE_State(void){
 	//
 	if (f_PMCU_CMD){
 		if (UART_Buffer[0] == 'S'){ //Save Data
-			strncpy(g_variable, UART_Buffer+2, 3);
+			ExtractVariable(g_variable, UART_Buffer);
+			ExtractValue(g_Value, UART_Buffer);
+			SetVariable(g_variable, g_Value);
+/*			strncpy(g_variable, UART_Buffer+2, 3);
 			if (strcmp(g_variable, "RG1")==0){
 				char val[20];
 				uint8_t i = 6;
@@ -277,6 +281,22 @@ uint8_t IDLE_State(void){
 				g_RGAccuTipsData = atoi(val);
 				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
 			}
+			else if (UTL_CompareEqual(g_variable, "DTM")){
+				char val[20];
+				uint8_t i = 6;
+				do{
+					val[i-6] = UART_Buffer[i];
+					i++;
+				}
+				while(UART_Buffer[i] != '\0');
+				DTM_DateTime_Set(val);
+				DTM_DateTime_Get();
+
+				xprintf(PC, "Date and Time Synched: %s\r\n", g_DateTime);
+				HAL_Delay(200);
+			}*/
+
+
 		}
 		f_PMCU_CMD = false;
 

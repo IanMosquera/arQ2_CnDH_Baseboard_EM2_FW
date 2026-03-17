@@ -34,6 +34,7 @@ extern bool f_Printed;
 extern bool f_USB;
 
 extern char g_DateTime[];
+extern char g_SIMNum[];
 extern char g_firmwareVer[];
 extern char	TEMP_Buffer[];
 extern char UART_Buffer[];
@@ -57,6 +58,8 @@ char GetChar(uint8_t timeout);
 
 void Clear_Buffer(char *pBuffer, uint16_t len);
 void Clear_USB_Buffers(void);
+void ExtractValue(char *dest, char *source);
+void ExtractVariable(char *dest, char *source);
 void Get_Config(void);
 void Interrupt_PMCU(void);
 void PMCU_Check(void);
@@ -64,6 +67,7 @@ void RTC_Assign_Date(RTC_DateTypeDef *pDate);
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime);
 void RTC_Init(void);
 void RTC_ShowDateTime(void);
+uint8_t SetVariable(char *variable, char *value);
 void Uninterrupt_PMCU(void);
 void xprintf(uint8_t stream, char *FormatString, ...);
 
