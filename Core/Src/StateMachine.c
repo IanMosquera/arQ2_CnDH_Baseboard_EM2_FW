@@ -249,11 +249,10 @@ uint8_t IDLE_State(void){
 
 
 
-	//
+	// Message from PMCU
 	if (f_PMCU_MSG){
-		xprintf(PC, "%s", UART_Buffer);
-		memset(UART_Buffer, '\0', 100);
 		f_PMCU_MSG = false;
+		Print_UARTBuffer();
   }
 
 	if (f_PMCU_QRY){
@@ -265,28 +264,8 @@ uint8_t IDLE_State(void){
 
 	//
 	if (f_PMCU_CMD){
-		if (UART_Buffer[0] == 'S'){ //Save Data
-			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				char val[20];
-				uint8_t i = 6;
-				do{
-					val[i-6] = UART_Buffer[i];
-					i++;
-				}while(UART_Buffer[i] != '\0');
-				g_RGAccuTipsData = atoi(val);
-				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
-			}
-		}
 		f_PMCU_CMD = false;
-
-
-		if (UART_Buffer[0] == 'G'){ //Get Data
-			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				xprintf(PMCU, "RG1:%d\r\n", g_RGAccuTipsData);
-			}
-		}
+		Extract_PMCUCommand();
 	}
 
 	return e_NONE;
@@ -296,8 +275,12 @@ uint8_t IDLE_State(void){
 
 uint8_t INIT_State(void){
 	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+	HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 	HAL_TIM_Base_Start_IT(arQTimer);
+
+
 	DTM_DateTime_Set("26/02/04,15:13:00");
+
 /*	if (Retry(Get_DateTime_From_PMCU, 3)){
 		DTM_DateTime_Set(RESP_Buffer);
 		xprintf(PC, "Date Time: %s\r\n", g_DateTime);

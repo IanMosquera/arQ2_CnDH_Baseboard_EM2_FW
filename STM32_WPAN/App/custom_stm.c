@@ -23,7 +23,7 @@
 #include "custom_stm.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,12 +105,40 @@ do {\
     uuid_struct[12] = uuid_12; uuid_struct[13] = uuid_13; uuid_struct[14] = uuid_14; uuid_struct[15] = uuid_15; \
 }while(0)
 
-#define COPY_SPP_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x00,0xcc,0x7a,0x48,0x2a,0x98,0x4a,0x7f,0x2e,0xd5,0xb3,0xe5,0x8f)
-#define COPY_TX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x01,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
-#define COPY_RX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x00,0x02,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
+#define COPY_SPP_UUID(uuid_struct)   COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x00,0xcc,0x7a,0x48,0x2a,0x98,0x4a,0x7f,0x2e,0xd5,0xb3,0xe5,0x8f)
+#define COPY_TX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x01,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
+#define COPY_RX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x02,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
 
 /* USER CODE BEGIN PF */
+tBleStatus SPP_Update_Char(Custom_STM_Char_Opcode_t CharOpcode,  uint8_t *pPayload){
+/*	char str[100];
+	uint8_t len;*/
 
+	tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
+
+	uint8_t size;
+	size = 0;
+	while(pPayload[size] != '\0') size++;	/*Compute payload string size until \0*/
+
+	if (CharOpcode == CUSTOM_STM_RX){
+		/*Updated Characteristic TX*/
+		ret = aci_gatt_update_char_value(CustomContext.CustomSppHdle,
+																		 CustomContext.CustomRxHdle,
+																		 0, /* charValOffset */
+																		 size, /* charValueLen */
+																		 (uint8_t *)  pPayload);
+
+/*		if (ret != BLE_STATUS_SUCCESS){
+			len = sprintf(str, "Fail   : aci_gatt_update_char_value SPP_RX command, result : 0x%x \r\n", ret);
+			CDC_Transmit_FS((uint8_t *)str, len);
+		}
+		else{
+			len = sprintf(str, "Success: aci_gatt_update_char_value SPP_RX command\r\n");
+			CDC_Transmit_FS((uint8_t *)str, len);
+		}*/
+	}
+	return ret;
+}
 /* USER CODE END PF */
 
 /**
@@ -192,6 +220,11 @@ static SVCCTL_EvtAckStatus_t Custom_STM_Event_Handler(void *Event)
           {
             return_value = SVCCTL_EvtAckFlowEnable;
             /* USER CODE BEGIN CUSTOM_STM_Service_1_Char_1_ACI_GATT_ATTRIBUTE_MODIFIED_VSEVT_CODE */
+            Notification.Custom_Evt_Opcode = CUSTOM_STM_TX_WRITE_NO_RESP_EVT;
+            Notification.DataTransfered.Length = attribute_modified->Attr_Data_Length;
+            Notification.DataTransfered.pPayload = attribute_modified->Attr_Data;
+            Custom_STM_App_Notification(&Notification);
+            //CDC_Transmit_FS(attribute_modified->Attr_Data, attribute_modified->Attr_Data_Length);
 
             /* USER CODE END CUSTOM_STM_Service_1_Char_1_ACI_GATT_ATTRIBUTE_MODIFIED_VSEVT_CODE */
           } /* if (attribute_modified->Attr_Handle == (CustomContext.CustomTxHdle + CHARACTERISTIC_VALUE_ATTRIBUTE_OFFSET))*/

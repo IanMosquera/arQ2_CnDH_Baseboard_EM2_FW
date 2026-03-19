@@ -197,7 +197,7 @@ void SystemClock_Config(void)
 void PeriphCommonClock_Config(void)
 {
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
+  LL_HSEM_1StepLock( HSEM, 5);
   /** Initializes the peripherals clock
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SMPS|RCC_PERIPHCLK_RFWAKEUP;
@@ -210,7 +210,7 @@ void PeriphCommonClock_Config(void)
     Error_Handler();
   }
   /* USER CODE BEGIN Smps */
-  LL_HSEM_1StepLock( HSEM, 5);
+  //LL_HSEM_1StepLock( HSEM, 5);
   /* USER CODE END Smps */
 }
 
@@ -270,113 +270,11 @@ void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
 
 
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == PMCU_INT_Pin)
-		f_PMCU_Responds = true;
-}
 
 
 
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if (htim == arQTimer){
 
-		if (Mili_Sec_Ctr == 20){
-			Mili_Sec_Ctr = 0;
-			TMR_SEC_Count();
-		}
-		else	Mili_Sec_Ctr++;
-
-
-		// Task Counter Timer
-		if (Process_Ctr >= 65000)	Process_Ctr = 0;
-		else	Process_Ctr++;
-
-
-		// PMCU Responds
-		if (SEC == 32)
-			f_PMCU_Responds = false;
-
-
-
-		//PMCU_Check();
-		if ((SEC > 25) && (SEC < 31)){
-			f_CheckPMCU = true;
-		}
-		else{
-			f_CheckPMCU = false;
-		}
-
-
-		// Fault Counter
-		if (SEC == 30){
-
-			if (!f_PMCU_Responds){
-				if (!f_Fault_Incremented){
-					f_Fault_Incremented = true;
-					g_Fault_Ctr++;
-				}
-			}
-			else{
-				g_Fault_Ctr = 0;
-			}
-		}
-		else{
-			f_Fault_Incremented  = false;
-		}
-
-
-	}
-}
-
-
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	if (huart == &huart1){
-		//HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_CHAR, 1);
-
-
-		// Clear Buffer id starting to zero
-		if (CHAR_CTR == 0)
-			memset(TEMP_Buffer, '\0', 100);
-
-		// Copy character to buffer
-		TEMP_Buffer[CHAR_CTR] = UART_CHAR;
-
-		if (CHAR_CTR > 100)
-			CHAR_CTR = 0;
-		else
-			CHAR_CTR++;
-
-		// reset counter when carriage return encounters
-		/*if ((UART_CHAR== '\n') ||
-			 ((TEMP_Buffer[CHAR_CTR-2] == '\r') && (TEMP_Buffer[CHAR_CTR-1] == '\n')))
-		{
-			CHAR_CTR = 0;
-			sprintf(UART_Buffer, TEMP_Buffer);
-		}*/
-
-		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
-			CHAR_CTR = 0;
-			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			f_PMCU_MSG = true;
-		}
-
-		if ((TEMP_Buffer[CHAR_CTR-1] == '$') && (TEMP_Buffer[CHAR_CTR-2] == '$')){
-			CHAR_CTR = 0;
-			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			f_PMCU_CMD = true;
-		}
-
-		if ((TEMP_Buffer[CHAR_CTR-1] == '?') && (TEMP_Buffer[CHAR_CTR-2] == '?')){
-			CHAR_CTR = 0;
-			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			f_PMCU_QRY = true;
-		}
-
-		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
-	}
-}
 
 
 /* USER CODE END 4 */

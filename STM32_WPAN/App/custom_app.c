@@ -29,7 +29,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ARQ.h"
+#include "DateTime.h"
+#include "Debug.h"
+#include "StateMachine.h"
+#include "stdbool.h"
+#include "stdlib.h"
+#include "string.h"
+#include "Timer.h"
+#include "usbd_cdc_if.h"
+#include "UtilityFunctions.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,7 +115,7 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
 
     case CUSTOM_STM_TX_WRITE_NO_RESP_EVT:
       /* USER CODE BEGIN CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
-
+    	CDC_Transmit_FS(pNotification->DataTransfered.pPayload, pNotification->DataTransfered.Length);
       /* USER CODE END CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
       break;
 
@@ -186,7 +195,11 @@ void Custom_APP_Notification(Custom_App_ConnHandle_Not_evt_t *pNotification)
 void Custom_APP_Init(void)
 {
   /* USER CODE BEGIN CUSTOM_APP_Init */
+	INIT_State();
 
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTUARTBUFFER, UTIL_SEQ_RFU, Print_UARTBuffer);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOPMCU, UTIL_SEQ_RFU, BLE_Print_to_PMCU);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_EXTRACTPMCUCMD, UTIL_SEQ_RFU, Extract_PMCUCommand);
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }
@@ -202,7 +215,7 @@ void Custom_APP_Init(void)
  *************************************************************/
 
 /* SPP */
-__USED void Custom_Rx_Update_Char(void) /* Property Read */
+void Custom_Rx_Update_Char(void) /* Property Read */
 {
   uint8_t updateflag = 0;
 
