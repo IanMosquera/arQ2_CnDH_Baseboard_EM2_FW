@@ -18,7 +18,7 @@
 #include <usart.h>
 
 e_Events g_CurrentEvent;
-s_States currentState;
+s_States g_CurrentState;
 s_States nextState;
 
 s_nextState nState[] = {
@@ -105,6 +105,36 @@ void STM_UponExiting(uint8_t currentState){
 
 
 
+uint8_t STM_DetermineNextState(uint8_t state, uint8_t event){
+	for (uint8_t i = 0; i < 50; i++){
+		if (nState[i].cST == g_CurrentState){
+			if(nState[i].cEvt == event)
+				return nState[i].nST;
+		}
+	}
+
+	// Default
+	return s_IDLE;
+}
+
+
+
+
+
+void STM_StateManager(uint8_t event){
+	nextState = STM_DetermineNextState(g_CurrentState, event);
+
+	// Transition to next state
+	if (nextState != g_CurrentState){
+		// STM_UponExiting(currentState);
+		// STM_UponEntering(nextState);
+		g_CurrentState = nextState;
+	}
+
+	if (event != e_Undefined)
+		g_CurrentEvent = STM_ActionWhileInState(g_CurrentState);
+}
+
 
 
 
@@ -117,19 +147,7 @@ void Clear_PMCU_Flags(void){
 
 
 
-void STM_StateManager(uint8_t event){
-	nextState = STM_DetermineNextState(currentState, event);
 
-	// Transition to next state
-	if (nextState != currentState){
-		STM_UponExiting(currentState);
-		STM_UponEntering(nextState);
-		currentState = nextState;
-	}
-
-	if (event != e_Undefined)
-		g_CurrentEvent = STM_ActionWhileInState(currentState);
-}
 
 
 
@@ -276,8 +294,9 @@ uint8_t IDLE_State(void){
 uint8_t INIT_State(void){
 	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
 	HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
-	HAL_TIM_Base_Start_IT(arQTimer);
 
+
+	HAL_TIM_Base_Start_IT(arQTimer);
 
 	DTM_DateTime_Set("26/02/04,15:13:00");
 
@@ -308,14 +327,4 @@ uint8_t INIT_State(void){
 
 
 
-uint8_t STM_DetermineNextState(uint8_t state, uint8_t event){
-	for (uint8_t i = 0; i < 50; i++){
-		if (nState[i].cST == currentState){
-			if(nState[i].cEvt == event)
-				return nState[i].nST;
-		}
-	}
 
-	// Default
-	return s_IDLE;
-}

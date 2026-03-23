@@ -29,9 +29,12 @@ typedef enum
 
 
 
-void TMR_SEC_Count(void);
-uint8_t IS_LEAP(uint8_t Year);
 bool Task_TimeOut(uint16_t seconds);
+
+uint8_t IS_LEAP(uint8_t Year);
+
+void BLE_Timer_Loop(void);
 void Task_TimeOut_Start(void);
+void TMR_SEC_Count(void);
 
 #endif /* INC_TIMER_H_ */

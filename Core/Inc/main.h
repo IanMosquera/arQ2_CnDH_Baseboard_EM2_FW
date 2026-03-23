@@ -69,7 +69,7 @@ void Error_Handler(void);
 void BLE_Mode_LED_Stat(void);
 void Log_Error(char *pBuffer);
 void Main_Prog_LED_Stat(void);
-void USB_CDC_RxHandler(uint8_t*, uint32_t);
+
 void WatchDog_Reset(void);
 /* USER CODE END EFP */
 

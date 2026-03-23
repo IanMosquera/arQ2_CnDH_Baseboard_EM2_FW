@@ -4,12 +4,18 @@
  *  Created on: Dec 18, 2025
  *      Author: IanCMosquera
  */
+
+
 #include "ARQ.h"
 #include "DateTime.h"
+#include "Debug.h"
+#include "StateMachine.h"
 #include "Timer.h"
 
 
-
+#if (BLE_ENABLED)
+#include "stm32_seq.h"
+#endif
 
 /******************************************************************************
   * @brief	Timer Elapse Function
@@ -74,6 +80,24 @@ uint8_t IS_LEAP(uint8_t Year)
 }
 
 
+
+
+void BLE_Timer_Loop(void){
+	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+
+	if (f_USB){
+		f_USB = false;
+		if (Filter_USB_String() == e_DBUG){
+			//Debug_Mode();
+		}
+
+	}
+}
+
+
+
+
+
 bool Task_TimeOut(uint16_t seconds)
 {
 	if (Process_Ctr >= (seconds * 20)){
@@ -83,6 +107,11 @@ bool Task_TimeOut(uint16_t seconds)
 
 	return false;
 }
+
+
+
+
+
 /******************************************************************************
   * @brief	Start task counting
   * @param	None

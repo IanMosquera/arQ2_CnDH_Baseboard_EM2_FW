@@ -35,7 +35,7 @@ extern "C" {
 extern UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN Private defines */
-#define UART_MCU &huart1
+
 extern UART_HandleTypeDef huart1;
 /* USER CODE END Private defines */
 

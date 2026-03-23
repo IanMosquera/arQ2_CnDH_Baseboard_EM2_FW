@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <usart.h>
 #include <usbd_cdc_if.h>
 
 #if (BLE_ENABLED)
@@ -37,9 +36,11 @@ bool f_PMCU_QRY = false;
 bool f_Printed = false;
 bool f_USB = false;
 
+char BLE_BUFFER[255];
 char g_DateTime[18];
 char g_firmwareVer[4];
 char g_SIMNum[12];
+char RESP_Buffer[100];
 char TEMP_Buffer[100];
 char UART_Buffer[100];
 char USB_BUFFER[255];
@@ -59,6 +60,86 @@ uint8_t UART_CHAR;
 /*************************** Functions ****************************************/
 
 
+void BLE_Debug_Mode(void){
+	uint8_t len;
+	len = sprintf(BLE_BUFFER, "Sending DEBUG command to PMCU: ");
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+	HAL_Delay(200);
+
+	xprintf(PMCU, "DEBUG##");
+	if (!BLE_Get_Desired_Response("ACK", 10)){
+		len = sprintf(BLE_BUFFER, "FAIL\r\n");
+		CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+		SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+		HAL_Delay(200);
+		return;
+	}
+
+	len = sprintf(BLE_BUFFER, "SUCCESS!\r\n");
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+	HAL_Delay(200);
+
+	len = sprintf(BLE_BUFFER, "Extracting Variables");
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+	HAL_Delay(500);
+
+	// 1)
+	xprintf(PMCU, "G_SDT##");
+	if (BLE_Get_Desired_Response("SDT:", 10)){
+		g_SendingTime =  atoi(RESP_Buffer);
+	}
+
+/*	len = sprintf(BLE_BUFFER, "Getting FW version: ");
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+	HAL_Delay(500);
+
+	xprintf(PMCU, "G_FVR\r\n");
+	if (BLE_Get_Desired_Response("FVR:", 10)){
+		len = sprintf(BLE_BUFFER, "%s\r\n\r\n", RESP_Buffer);
+		CDC_Transmit_FS((uint8_t *)BLE_BUFFER, len);
+		SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+		HAL_Delay(500);
+	}
+
+	BLE_Print_Setting_Menu();*/
+}
+
+
+
+
+
+char *BLE_Get_Desired_Response(char *Response, uint8_t timeout){
+	bool whilex = true;
+	char *ret = NULL;
+	uint8_t len;
+
+	CHAR_CTR = 0;
+	HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_CHAR, 1);
+
+	len = strlen(Response);
+	Task_TimeOut_Start();
+
+	while (whilex){
+		ret = strstr(TEMP_Buffer, Response);
+		if (ret){
+			sprintf(RESP_Buffer, "%s", ret + len);
+			return  RESP_Buffer;
+		}
+
+		if (Task_TimeOut(timeout))
+			whilex = false;
+	}
+
+	return ret;
+}
+
+
+
+
 
 void BLE_Main_Loop(void){
 	char str[100];
@@ -73,11 +154,57 @@ void BLE_Main_Loop(void){
 
 
 
+
+void BLE_Print_Setting_Menu(void){
+  for (uint8_t i = 0; i < 26; i++){
+  	sprintf(BLE_BUFFER, "%s\r\n", Settings_Menu[i]);
+  	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+  	HAL_Delay(5);
+  }
+
+  Clear_USB_Buffers();
+}
+
+
+
+
 void BLE_Print_to_PMCU(void){
 	if (UTL_CompareEqual(UART_Buffer, "Status")){
 		xprintf(PMCU, "Attached\r\n");
 	}
 }
+
+
+
+
+void BLE_Print_to_USB(void){
+	uint8_t size = 0;
+
+	while(BLE_BUFFER[size] != '\0') size++;
+
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, size);
+}
+
+
+
+
+
+
+
+uint8_t CurrentState_Base_On_BLE_String(char *pBuf){
+	if (UTL_CompareEqual(pBuf, "DEBUG\r\n")){
+		return s_DBUG;
+	}
+	else if (UTL_CompareEqual(pBuf, "EXITDEBUG\r\n")){
+		return s_IDLE;
+	}
+
+	return s_IDLE;
+}
+
+
+
+
 
 /******************************************************************************
   * @brief	Clear buffer
@@ -95,8 +222,7 @@ void	Clear_Buffer(char *pBuffer, uint16_t len){
 
 
 
-void Clear_USB_Buffers(void)
-{
+void Clear_USB_Buffers(void){
 	memset(USB_BUFFER, '\0', 255);
 	f_USB = false;
 }
@@ -367,6 +493,15 @@ uint8_t Set_Variable(char *variable, char *value){
 
 
 
+void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
+	strcpy((char *)USB_BUFFER, (char *)Buf);
+	f_USB = true;
+}
+
+
+
+
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if (GPIO_Pin == PMCU_INT_Pin)
 		f_PMCU_Responds = true;
@@ -378,7 +513,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == arQTimer){
-
 
 #if (BLE_ENABLED)
 		if (Mili_Sec_Ctr == 20){
@@ -405,20 +539,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
 
 
-		if (f_PMCU_MSG){
-			f_PMCU_MSG = false;
-			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTUARTBUFFER, CFG_SCH_PRIO_0);
-	  }
-
 		if (f_PMCU_QRY){
 			f_PMCU_QRY = false;
 			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
 		}
 
-		if (f_PMCU_CMD){
-			f_PMCU_CMD = false;
-			UTIL_SEQ_SetTask(1<<CFG_TASK_EXTRACTPMCUCMD, CFG_SCH_PRIO_0);
-		}
 
 
 #else
@@ -502,13 +627,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			f_PMCU_MSG = true;
+			if (g_CurrentState != s_DBUG){
+				UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTUARTBUFFER, CFG_SCH_PRIO_0);
+			}
+
 		}
 
 		if ((TEMP_Buffer[CHAR_CTR-1] == '$') && (TEMP_Buffer[CHAR_CTR-2] == '$')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
-			f_PMCU_CMD = true;
+			//f_PMCU_CMD = true;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_EXTRACTPMCUCMD, CFG_SCH_PRIO_0);
 		}
 
 		if ((TEMP_Buffer[CHAR_CTR-1] == '?') && (TEMP_Buffer[CHAR_CTR-2] == '?')){

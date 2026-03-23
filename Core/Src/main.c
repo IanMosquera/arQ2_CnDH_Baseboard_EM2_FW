@@ -122,7 +122,7 @@ int main(void)
   CHAR_CTR = 0;
   HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 
-  currentState = s_STRT;
+  g_CurrentState = s_STRT;
   g_CurrentEvent = e_NONE;
 
   /* USER CODE END 2 */
@@ -197,7 +197,7 @@ void SystemClock_Config(void)
 void PeriphCommonClock_Config(void)
 {
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-  LL_HSEM_1StepLock( HSEM, 5);
+
   /** Initializes the peripherals clock
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SMPS|RCC_PERIPHCLK_RFWAKEUP;
@@ -210,7 +210,7 @@ void PeriphCommonClock_Config(void)
     Error_Handler();
   }
   /* USER CODE BEGIN Smps */
-  //LL_HSEM_1StepLock( HSEM, 5);
+  LL_HSEM_1StepLock( HSEM, 5);
   /* USER CODE END Smps */
 }
 
@@ -255,26 +255,6 @@ void Log_Error(char *pBuffer)
 {
 
 }
-
-
-
-
-
-
-
-void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
-	strcpy((char *)USB_BUFFER, (char *)Buf);
-	f_USB = true;
-}
-
-
-
-
-
-
-
-
-
 
 
 /* USER CODE END 4 */

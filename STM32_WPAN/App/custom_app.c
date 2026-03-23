@@ -115,7 +115,14 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
 
     case CUSTOM_STM_TX_WRITE_NO_RESP_EVT:
       /* USER CODE BEGIN CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
-    	CDC_Transmit_FS(pNotification->DataTransfered.pPayload, pNotification->DataTransfered.Length);
+    	pNotification->DataTransfered.pPayload[pNotification->DataTransfered.Length] = '\0';
+    	strcpy(BLE_BUFFER, (char *)pNotification->DataTransfered.pPayload);
+
+    	g_CurrentState = CurrentState_Base_On_BLE_String(BLE_BUFFER);
+
+    	if (g_CurrentState == s_DBUG){
+    		UTIL_SEQ_SetTask(1<<CFG_TASK_DEBUG, CFG_SCH_PRIO_0);
+    	}
       /* USER CODE END CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
       break;
 
@@ -197,9 +204,13 @@ void Custom_APP_Init(void)
   /* USER CODE BEGIN CUSTOM_APP_Init */
 	INIT_State();
 
+	g_CurrentState = s_IDLE;
+
 	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTUARTBUFFER, UTIL_SEQ_RFU, Print_UARTBuffer);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOPMCU, UTIL_SEQ_RFU, BLE_Print_to_PMCU);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOUSB, UTIL_SEQ_RFU, BLE_Print_to_USB);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_EXTRACTPMCUCMD, UTIL_SEQ_RFU, Extract_PMCUCommand);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_DEBUG, UTIL_SEQ_RFU, BLE_Debug_Mode);
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }

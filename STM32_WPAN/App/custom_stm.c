@@ -105,12 +105,12 @@ do {\
     uuid_struct[12] = uuid_12; uuid_struct[13] = uuid_13; uuid_struct[14] = uuid_14; uuid_struct[15] = uuid_15; \
 }while(0)
 
-#define COPY_SPP_UUID(uuid_struct)   COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x00,0xcc,0x7a,0x48,0x2a,0x98,0x4a,0x7f,0x2e,0xd5,0xb3,0xe5,0x8f)
+#define COPY_SPP_UUID(uuid_struct)          COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x00,0xcc,0x7a,0x48,0x2a,0x98,0x4a,0x7f,0x2e,0xd5,0xb3,0xe5,0x8f)
 #define COPY_TX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x01,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
 #define COPY_RX_UUID(uuid_struct)    COPY_UUID_128(uuid_struct,0x00,0x00,0x80,0x02,0x8e,0x22,0x45,0x41,0x9d,0x4c,0x21,0xed,0xae,0x82,0xed,0x19)
 
 /* USER CODE BEGIN PF */
-tBleStatus SPP_Update_Char(Custom_STM_Char_Opcode_t CharOpcode,  uint8_t *pPayload){
+uint8_t SPP_Update_Char(Custom_STM_Char_Opcode_t CharOpcode,  uint8_t *pPayload){
 /*	char str[100];
 	uint8_t len;*/
 
@@ -422,7 +422,7 @@ void SVCCTL_InitCustomSvc(void)
  * @param  Service_Instance: Instance of the service to which the characteristic belongs
  *
  */
-tBleStatus Custom_STM_App_Update_Char(Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload)
+uint8_t Custom_STM_App_Update_Char(Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload)
 {
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
   /* USER CODE BEGIN Custom_STM_App_Update_Char_1 */
@@ -488,7 +488,7 @@ tBleStatus Custom_STM_App_Update_Char(Custom_STM_Char_Opcode_t CharOpcode, uint8
  * @param  size: Length of the characteristic value in octets
  *
  */
-tBleStatus Custom_STM_App_Update_Char_Variable_Length(Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload, uint8_t size)
+uint8_t Custom_STM_App_Update_Char_Variable_Length(Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload, uint8_t size)
 {
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
   /* USER CODE BEGIN Custom_STM_App_Update_Char_Variable_Length_1 */
@@ -554,7 +554,7 @@ tBleStatus Custom_STM_App_Update_Char_Variable_Length(Custom_STM_Char_Opcode_t C
  * @param  pPayload: Characteristic value
  *
  */
-tBleStatus Custom_STM_App_Update_Char_Ext(uint16_t Connection_Handle, Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload)
+uint8_t Custom_STM_App_Update_Char_Ext(uint16_t Connection_Handle, Custom_STM_Char_Opcode_t CharOpcode, uint8_t *pPayload)
 {
   tBleStatus ret = BLE_STATUS_INVALID_PARAMS;
   /* USER CODE BEGIN Custom_STM_App_Update_Char_Ext_1 */

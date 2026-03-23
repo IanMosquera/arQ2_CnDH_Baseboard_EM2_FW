@@ -10,6 +10,7 @@
 
 #include "main.h"
 #include "tim.h"
+#include <usart.h>
 
 typedef enum{
 	PC,
@@ -21,6 +22,8 @@ typedef enum{
 #define BLE_ENABLED 1
 
 #define arQTimer &htim17
+
+#define UART_MCU &huart1
 
 
 extern bool f_CheckPMCU;
@@ -34,9 +37,11 @@ extern bool f_PMCU_Responds;
 extern bool f_Printed;
 extern bool f_USB;
 
+extern char BLE_BUFFER[];
 extern char g_DateTime[];
 extern char g_firmwareVer[];
 extern char g_SIMNum[];
+extern char RESP_Buffer[];
 extern char	TEMP_Buffer[];
 extern char UART_Buffer[];
 extern char USB_BUFFER[];
@@ -47,23 +52,27 @@ extern uint8_t CHAR_CTR;
 extern uint8_t g_Fault_Ctr;
 extern uint8_t g_RGAccuTipsData;
 extern uint8_t g_RGTipsData;
+extern uint8_t g_SendingTime;
 extern uint8_t Mili_Sec_Ctr;
 extern uint8_t UART_CHAR;
+
 
 
 
 bool Get_DateTime_From_PMCU(void);
 bool Retry(bool (*func)(void), uint8_t maxRetry);
 
-
+char *BLE_Get_Desired_Response(char *Response, uint8_t timeout);
 char GetChar(uint8_t timeout);
 
-
+uint8_t CurrentState_Base_On_BLE_String(char *pBuf);
 uint8_t Set_Variable(char *variable, char *value);
 
-
+void BLE_Debug_Mode(void);
 void BLE_Main_Loop(void);
+void BLE_Print_Setting_Menu(void);
 void BLE_Print_to_PMCU(void);
+void BLE_Print_to_USB(void);
 void Clear_Buffer(char *pBuffer, uint16_t len);
 void Clear_USB_Buffers(void);
 void Extract_PMCUCommand(void);
@@ -76,8 +85,7 @@ void RTC_Assign_Date(RTC_DateTypeDef *pDate);
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime);
 void RTC_Init(void);
 void RTC_ShowDateTime(void);
-
-
+void USB_CDC_RxHandler(uint8_t*, uint32_t);
 void xprintf(uint8_t stream, char *FormatString, ...);
 
 #endif /* INC_ARQ_H_ */

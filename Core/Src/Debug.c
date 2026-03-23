@@ -14,10 +14,21 @@
 #include "UtilityFunctions.h"
 #include <usart.h>
 
+#if (BLE_ENABLED)
+#include "stm32_seq.h"
+#include "custom_stm.h"
+#endif
 
 static void Print_InvalidInput(char *pData);
 static void ListRegisteredNumber(void);
 //static void Print_InvalidChar(char pChar);
+
+
+
+
+
+
+
 
 uint8_t Debug_Mode(void){
 	bool invalid = false;

@@ -11,7 +11,7 @@
 #include "main.h"
 #include <stdbool.h>
 
-extern char RESP_Buffer[];
+
 
 
 
