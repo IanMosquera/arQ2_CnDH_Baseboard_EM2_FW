@@ -241,7 +241,7 @@ uint8_t IDLE_State(void){
 
 
 	// NRST_PMCU
-	if (g_Fault_Ctr == 3){
+	if (g_Fault_Ctr == 5){
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
