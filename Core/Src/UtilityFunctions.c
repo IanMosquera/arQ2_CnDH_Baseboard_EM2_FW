@@ -44,9 +44,6 @@ char UTL_GetChar(uint8_t timeout){
 
 
 
-void Reset_PMCU(void){
-	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
-}
 
 
 

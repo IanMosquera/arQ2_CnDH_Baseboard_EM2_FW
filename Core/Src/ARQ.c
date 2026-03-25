@@ -10,6 +10,7 @@
 #include "rtc.h"
 #include "Timer.h"
 #include "DateTime.h"
+#include "StateMachine.h"
 #include "UtilityFunctions.h"
 
 #include <stdarg.h>
@@ -38,6 +39,7 @@ bool f_PMCU_QRY = false;
 bool f_Printed = false;
 bool f_USB = false;
 
+char BLE_BUFFER[255];
 char g_DateTime[18];
 char g_SIMNum[12];
 char g_firmwareVer[4];
@@ -70,6 +72,16 @@ void BLE_Print_to_PMCU(void){
 
 
 
+
+void BLE_Print_to_USB(void){
+	uint8_t size = 0;
+
+	while(BLE_BUFFER[size] != '\0') size++;
+
+	CDC_Transmit_FS((uint8_t *)BLE_BUFFER, size);
+}
+
+
 /******************************************************************************
   * @brief	Clear buffer
   * @param	pBuffer	pointer to a buffer
@@ -93,7 +105,42 @@ void Clear_USB_Buffers(void)
 }
 
 
-void ExtractValue(char *dest, char *source){
+
+
+
+uint8_t CurrentState_Base_On_BLE_String(char *pBuf){
+	if (UTL_CompareEqual(pBuf, "DEBUG\r\n")){
+		return s_DBUG;
+	}
+	else if (UTL_CompareEqual(pBuf, "EXITDEBUG\r\n")){
+		return s_IDLE;
+	}
+
+	return s_IDLE;
+}
+
+
+
+
+void Extract_PMCUCommand(void){
+	char var[4];
+	char val[30];
+
+	Extract_Variable(var, UART_Buffer);
+
+	if (UART_Buffer[0] == 'S'){
+		Extract_Value(val, UART_Buffer);
+		Set_Variable(var, val);
+	}
+	else if (UART_Buffer[0] == 'G'){
+
+	}
+}
+
+
+
+
+void Extract_Value(char *dest, char *source){
 	uint8_t i = 6;
 	do{
 		dest[i-6] = source[i];
@@ -102,7 +149,7 @@ void ExtractValue(char *dest, char *source){
 }
 
 
-void ExtractVariable(char *dest, char *source){
+void Extract_Variable(char *dest, char *source){
 	strncpy(dest, source+2, 3);
 }
 
@@ -308,6 +355,16 @@ void Uninterrupt_PMCU(void){
 
 
 
+void Reset_PMCU(void){
+	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
+	HAL_Delay(500);
+	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+}
+
+
+
+
+
 
 void RTC_Init(void)
 {
@@ -355,7 +412,7 @@ void RTC_ShowDateTime(void)
 
 
 
-uint8_t SetVariable(char *variable, char *value){
+uint8_t Set_Variable(char *variable, char *value){
 	if (UTL_CompareEqual(variable, "DTM")){
 		DTM_DateTime_Set(value);
 		DTM_DateTime_Get();
@@ -369,6 +426,115 @@ uint8_t SetVariable(char *variable, char *value){
 
 	HAL_Delay(200);
 	return 0;
+}
+
+
+
+
+
+
+
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if (GPIO_Pin == PMCU_INT_Pin)
+		f_PMCU_Responds = true;
+}
+
+
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	if (huart == &huart1){
+		//HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART_CHAR, 1);
+
+
+		// Clear Buffer id starting to zero
+		if (CHAR_CTR == 0)
+			memset(TEMP_Buffer, '\0', 100);
+
+		// Copy character to buffer
+		TEMP_Buffer[CHAR_CTR] = UART_CHAR;
+
+		if (CHAR_CTR > 100)
+			CHAR_CTR = 0;
+		else
+			CHAR_CTR++;
+
+		// reset counter when carriage return encounters
+		/*if ((UART_CHAR== '\n') ||
+			 ((TEMP_Buffer[CHAR_CTR-2] == '\r') && (TEMP_Buffer[CHAR_CTR-1] == '\n')))
+		{
+			CHAR_CTR = 0;
+			sprintf(UART_Buffer, TEMP_Buffer);
+		}*/
+
+		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
+			CHAR_CTR = 0;
+			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			if (g_CurrentState != s_DBUG){
+				UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTUARTBUFFER, CFG_SCH_PRIO_0);
+			}
+		}
+
+		if ((TEMP_Buffer[CHAR_CTR-1] == '$') && (TEMP_Buffer[CHAR_CTR-2] == '$')){
+			CHAR_CTR = 0;
+			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			//f_PMCU_CMD = true;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_EXTRACTPMCUCMD, CFG_SCH_PRIO_0);
+		}
+
+		if ((TEMP_Buffer[CHAR_CTR-1] == '?') && (TEMP_Buffer[CHAR_CTR-2] == '?')){
+			CHAR_CTR = 0;
+			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			f_PMCU_QRY = true;
+		}
+
+		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+	}
+}
+
+
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if (htim == arQTimer){
+		if (Mili_Sec_Ctr == 20){
+			Mili_Sec_Ctr = 0;
+			TMR_SEC_Count();
+			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+			if (SEC == 30){
+				if (!f_PMCU_Responds)
+					g_Fault_Ctr++;
+				else
+					g_Fault_Ctr = 0;
+
+				if (g_Fault_Ctr == 5){
+					g_Fault_Ctr = 0;
+					UTIL_SEQ_SetTask(1<<CFG_TASK_RESETPMCU, CFG_SCH_PRIO_0);
+				}
+			}
+		}
+		else	Mili_Sec_Ctr++;
+
+		// Task Counter Timer
+		if (Process_Ctr >= 65000)	Process_Ctr = 0;
+		else	Process_Ctr++;
+
+		// PMCU Responds
+		if (SEC == 32) f_PMCU_Responds = false;
+
+		if ((SEC > 25) && (SEC < 31))
+			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+		else
+			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+
+
+		if (f_PMCU_QRY){
+			f_PMCU_QRY = false;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
+		}
+	}
 }
 
 
