@@ -62,6 +62,12 @@ uint8_t UART_CHAR;
 /*************************** Functions ****************************************/
 
 
+void BLE_Debug_Mode(void){
+
+}
+
+
+
 
 
 void BLE_Print_to_PMCU(void){

@@ -61,6 +61,7 @@ char GetChar(uint8_t timeout);
 uint8_t CurrentState_Base_On_BLE_String(char *pBuf);
 uint8_t Set_Variable(char *variable, char *value);
 
+void BLE_Debug_Mode(void);
 void BLE_Print_to_PMCU(void);
 void BLE_Print_to_USB(void);
 void Clear_Buffer(char *pBuffer, uint16_t len);

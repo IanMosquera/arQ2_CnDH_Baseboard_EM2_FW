@@ -15,6 +15,12 @@
 #include <usart.h>
 
 
+#if (BLE_ENABLED)
+#include "ble_types.h"
+#include "custom_stm.h"
+#include "stm32_seq.h"
+#endif
+
 static void Print_InvalidInput(char *pData);
 static void ListRegisteredNumber(void);
 //static void Print_InvalidChar(char pChar);
@@ -792,7 +798,14 @@ void Print_Modify_Cancel(void){
 
 void Print_Setting_Menu(void){
   for (uint8_t i = 0; i < 26; i++){
+
+		#if (BLE_ENABLED)
+  	sprintf(BLE_BUFFER, "%s\r\n", Settings_Menu[i]);
+  	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)BLE_BUFFER);
+		#else
   	xprintf(PC, "%s\r\n", Settings_Menu[i]);
+		#endif
+
   	HAL_Delay(5);
   }
 
