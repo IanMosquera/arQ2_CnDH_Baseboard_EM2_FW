@@ -29,6 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ARQ.h"
 #include "StateMachine.h"
 /* USER CODE END Includes */
 
@@ -187,6 +188,14 @@ void Custom_APP_Init(void)
 {
   /* USER CODE BEGIN CUSTOM_APP_Init */
 	INIT_State();
+
+	//g_CurrentState = s_IDLE;
+
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTUARTBUFFER, UTIL_SEQ_RFU, Print_UARTBuffer);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOPMCU, UTIL_SEQ_RFU, BLE_Print_to_PMCU);
+	//UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOUSB, UTIL_SEQ_RFU, BLE_Print_to_USB);
+	//UTIL_SEQ_RegTask(1 << CFG_TASK_EXTRACTPMCUCMD, UTIL_SEQ_RFU, Extract_PMCUCommand);
+	//UTIL_SEQ_RegTask(1 << CFG_TASK_DEBUG, UTIL_SEQ_RFU, BLE_Debug_Mode);
   /* USER CODE END CUSTOM_APP_Init */
   return;
 }

@@ -18,6 +18,7 @@ typedef enum{
 }Stream_t;
 
 
+#define BLE_ENABLED 1
 
 #define arQTimer &htim17
 
@@ -56,6 +57,9 @@ bool Retry(bool (*func)(void), uint8_t maxRetry);
 
 char GetChar(uint8_t timeout);
 
+uint8_t SetVariable(char *variable, char *value);
+
+void BLE_Print_to_PMCU(void);
 void Clear_Buffer(char *pBuffer, uint16_t len);
 void Clear_USB_Buffers(void);
 void ExtractValue(char *dest, char *source);
@@ -63,11 +67,11 @@ void ExtractVariable(char *dest, char *source);
 void Get_Config(void);
 void Interrupt_PMCU(void);
 void PMCU_Check(void);
+void Print_UARTBuffer(void);
 void RTC_Assign_Date(RTC_DateTypeDef *pDate);
 void RTC_Assign_Time(RTC_TimeTypeDef *pTime);
 void RTC_Init(void);
 void RTC_ShowDateTime(void);
-uint8_t SetVariable(char *variable, char *value);
 void Uninterrupt_PMCU(void);
 void xprintf(uint8_t stream, char *FormatString, ...);
 

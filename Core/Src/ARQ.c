@@ -21,6 +21,13 @@
 #include <usbd_cdc_if.h>
 
 
+#if (BLE_ENABLED)
+#include "ble_types.h"
+#include "custom_stm.h"
+#include "stm32_seq.h"
+#endif
+
+
 bool f_CheckPMCU = false;
 bool f_Fault_Incremented = false;
 bool f_InitState = true;
@@ -53,6 +60,13 @@ uint8_t UART_CHAR;
 /*************************** Functions ****************************************/
 
 
+
+
+void BLE_Print_to_PMCU(void){
+	if (UTL_CompareEqual(UART_Buffer, "Status")){
+		xprintf(PMCU, "Attached\r\n");
+	}
+}
 
 
 
@@ -266,6 +280,20 @@ void PMCU_Check(void){
 		Uninterrupt_PMCU();
 		f_PMCU_Responds =  false;
 	}*/
+}
+
+
+
+
+void Print_UARTBuffer(void){
+	uint8_t len = strlen(UART_Buffer);
+	CDC_Transmit_FS((uint8_t *)UART_Buffer, len);
+
+#if (BLE_ENABLED)
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)UART_Buffer);
+#endif
+
+	memset(UART_Buffer, '\0', 100);
 }
 
 

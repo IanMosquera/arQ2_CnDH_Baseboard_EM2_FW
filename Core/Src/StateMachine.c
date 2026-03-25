@@ -18,7 +18,7 @@
 #include <usart.h>
 
 e_Events g_CurrentEvent;
-s_States currentState;
+s_States g_CurrentState;
 s_States nextState;
 
 s_nextState nState[] = {
@@ -119,17 +119,17 @@ void Clear_PMCU_Flags(void){
 
 
 void STM_StateManager(uint8_t event){
-	nextState = STM_DetermineNextState(currentState, event);
+	nextState = STM_DetermineNextState(g_CurrentState, event);
 
 	// Transition to next state
-	if (nextState != currentState){
-		STM_UponExiting(currentState);
+	if (nextState != g_CurrentState){
+		STM_UponExiting(g_CurrentState);
 		STM_UponEntering(nextState);
-		currentState = nextState;
+		g_CurrentState = nextState;
 	}
 
 	if (event != e_Undefined)
-		g_CurrentEvent = STM_ActionWhileInState(currentState);
+		g_CurrentEvent = STM_ActionWhileInState(g_CurrentState);
 }
 
 
@@ -241,7 +241,7 @@ uint8_t IDLE_State(void){
 
 
 	// NRST_PMCU
-	if (g_Fault_Ctr == 3){
+	if (g_Fault_Ctr == 5){
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
@@ -252,9 +252,8 @@ uint8_t IDLE_State(void){
 
 	//
 	if (f_PMCU_MSG){
-		xprintf(PC, "%s", UART_Buffer);
-		memset(UART_Buffer, '\0', 100);
 		f_PMCU_MSG = false;
+		Print_UARTBuffer();
   }
 
 	if (f_PMCU_QRY){
@@ -266,47 +265,8 @@ uint8_t IDLE_State(void){
 
 	//
 	if (f_PMCU_CMD){
-		if (UART_Buffer[0] == 'S'){ //Save Data
-			ExtractVariable(g_variable, UART_Buffer);
-			ExtractValue(g_Value, UART_Buffer);
-			SetVariable(g_variable, g_Value);
-/*			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				char val[20];
-				uint8_t i = 6;
-				do{
-					val[i-6] = UART_Buffer[i];
-					i++;
-				}while(UART_Buffer[i] != '\0');
-				g_RGAccuTipsData = atoi(val);
-				xprintf(PMCU, "ACK RG1:%d\r\n", g_RGAccuTipsData);
-			}
-			else if (UTL_CompareEqual(g_variable, "DTM")){
-				char val[20];
-				uint8_t i = 6;
-				do{
-					val[i-6] = UART_Buffer[i];
-					i++;
-				}
-				while(UART_Buffer[i] != '\0');
-				DTM_DateTime_Set(val);
-				DTM_DateTime_Get();
-
-				xprintf(PC, "Date and Time Synched: %s\r\n", g_DateTime);
-				HAL_Delay(200);
-			}*/
-
-
-		}
 		f_PMCU_CMD = false;
-
-
-		if (UART_Buffer[0] == 'G'){ //Get Data
-			strncpy(g_variable, UART_Buffer+2, 3);
-			if (strcmp(g_variable, "RG1")==0){
-				xprintf(PMCU, "RG1:%d\r\n", g_RGAccuTipsData);
-			}
-		}
+		Extract_PMCUCommand();
 	}
 
 	return e_NONE;
@@ -347,7 +307,7 @@ uint8_t INIT_State(void){
 
 uint8_t STM_DetermineNextState(uint8_t state, uint8_t event){
 	for (uint8_t i = 0; i < 50; i++){
-		if (nState[i].cST == currentState){
+		if (nState[i].cST == g_CurrentState){
 			if(nState[i].cEvt == event)
 				return nState[i].nST;
 		}

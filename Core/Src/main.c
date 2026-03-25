@@ -116,13 +116,14 @@ int main(void)
   MX_USB_Device_Init();
   MX_TIM17_Init();
   MX_USART1_UART_Init();
+  MX_TIM16_Init();
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
   CHAR_CTR = 0;
   HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 
-  currentState = s_STRT;
+  g_CurrentState = s_STRT;
   g_CurrentEvent = e_NONE;
 
   /* USER CODE END 2 */
@@ -138,7 +139,7 @@ int main(void)
     MX_APPE_Process();
 
     /* USER CODE BEGIN 3 */
-	  STM_StateManager(g_CurrentEvent);
+	  //STM_StateManager(g_CurrentEvent);
   }
   /* USER CODE END 3 */
 }
@@ -217,49 +218,6 @@ void PeriphCommonClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 
-void BLE_Mode_LED_Stat(void)
-{
-	HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
-}
-
-
-void Main_Prog_LED_Stat(void)
-{
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_SET);
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(STAT_GPIO_Port, STAT_Pin, GPIO_PIN_RESET);
-	HAL_Delay(50);
-}
-
-
-void WatchDog_Reset(void){
-	xprintf(PC, "Resetting Watchdog\r\n");
-	HAL_Delay(10);
-	//HAL_IWDG_Refresh(&hiwdg);
-}
-
-
-
-
-
-
-
-
-
-
-void Log_Error(char *pBuffer)
-{
-
-}
-
-
-
-
-
 
 
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){
@@ -280,54 +238,81 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == arQTimer){
-
 		if (Mili_Sec_Ctr == 20){
 			Mili_Sec_Ctr = 0;
 			TMR_SEC_Count();
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+
+			if (SEC == 30){
+				if (!f_PMCU_Responds) g_Fault_Ctr++;
+				else g_Fault_Ctr = 0;
+			}
 		}
 		else	Mili_Sec_Ctr++;
-
 
 		// Task Counter Timer
 		if (Process_Ctr >= 65000)	Process_Ctr = 0;
 		else	Process_Ctr++;
 
-
 		// PMCU Responds
-		if (SEC == 32)
-			f_PMCU_Responds = false;
+		if (SEC == 32) f_PMCU_Responds = false;
+
+		if ((SEC > 25) && (SEC < 31))
+			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+		else
+			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
 
 
-
-		//PMCU_Check();
-		if ((SEC > 25) && (SEC < 31)){
-			f_CheckPMCU = true;
+		if (f_PMCU_QRY){
+			f_PMCU_QRY = false;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
 		}
-		else{
-			f_CheckPMCU = false;
-		}
+	}
 
 
-		// Fault Counter
-		if (SEC == 30){
+/*			if (Mili_Sec_Ctr == 20){
+				Mili_Sec_Ctr = 0;
+				TMR_SEC_Count();
+			}
+			else	Mili_Sec_Ctr++;
 
-			if (!f_PMCU_Responds){
-				if (!f_Fault_Incremented){
-					f_Fault_Incremented = true;
-					g_Fault_Ctr++;
+
+			// Task Counter Timer
+			if (Process_Ctr >= 65000)	Process_Ctr = 0;
+			else	Process_Ctr++;
+
+
+
+			// PMCU Responds
+			if (SEC == 32)
+				f_PMCU_Responds = false;
+
+
+
+			//PMCU_Check();
+			if ((SEC > 25) && (SEC < 31)){
+				f_CheckPMCU = true;
+			}
+			else{
+				f_CheckPMCU = false;
+			}
+
+
+			// Fault Counter
+			if (SEC == 30){
+
+				if (!f_PMCU_Responds){
+					if (!f_Fault_Incremented){
+						f_Fault_Incremented = true;
+						g_Fault_Ctr++;
+					}
+				}
+				else{
+					g_Fault_Ctr = 0;
 				}
 			}
 			else{
-				g_Fault_Ctr = 0;
-			}
-		}
-		else{
-			f_Fault_Incremented  = false;
-		}
-
-
-	}
+				f_Fault_Incremented  = false;
+			}*/
 }
 
 
