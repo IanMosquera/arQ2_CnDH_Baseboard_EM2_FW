@@ -36,8 +36,11 @@ extern bool f_USB;
 
 extern char BLE_BUFFER[];
 extern char g_DateTime[];
-extern char g_SIMNum[];
 extern char g_firmwareVer[];
+extern char g_Reg1[];
+extern char g_Reg2[];
+extern char g_Reg3[];
+extern char g_SIMNum[];
 extern char	TEMP_Buffer[];
 extern char UART_Buffer[];
 extern char USB_BUFFER[];
@@ -52,14 +55,18 @@ extern uint8_t Mili_Sec_Ctr;
 extern uint8_t UART_CHAR;
 
 
-
+bool BLE_Valid_Value(char ch, char *pVal);
 bool Get_DateTime_From_PMCU(void);
 bool Retry(bool (*func)(void), uint8_t maxRetry);
 
 char GetChar(uint8_t timeout);
 
+uint8_t BLE_Examine_String(char *pString);
+uint8_t BLE_Extract_Value(char *dest, char *source);
+uint8_t BLE_Set_Settings(char variable, char *value);
 uint8_t CurrentState_Base_On_BLE_String(char *pBuf);
 uint8_t Set_Variable(char *variable, char *value);
+
 
 void BLE_Debug_Mode(void);
 void BLE_Print_to_PMCU(void);

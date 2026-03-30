@@ -806,7 +806,7 @@ void Print_Setting_Menu(void){
   	xprintf(PC, "%s\r\n", Settings_Menu[i]);
 		#endif
 
-  	HAL_Delay(5);
+  	HAL_Delay(10);
   }
 
   Clear_USB_Buffers();

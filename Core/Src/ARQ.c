@@ -7,10 +7,11 @@
 
 
 #include "ARQ.h"
-#include "rtc.h"
-#include "Timer.h"
 #include "DateTime.h"
+#include "Debug.h"
+#include "rtc.h"
 #include "StateMachine.h"
+#include "Timer.h"
 #include "UtilityFunctions.h"
 
 #include <stdarg.h>
@@ -41,8 +42,11 @@ bool f_USB = false;
 
 char BLE_BUFFER[255];
 char g_DateTime[18];
-char g_SIMNum[12];
 char g_firmwareVer[4];
+char g_Reg1[12] = "09091234567";
+char g_Reg2[12] = "09091230000";
+char g_Reg3[12] = "09090004567";
+char g_SIMNum[12];
 char TEMP_Buffer[100];
 char UART_Buffer[100];
 char USB_BUFFER[255];
@@ -70,6 +74,45 @@ void BLE_Debug_Mode(void){
 
 
 
+uint8_t BLE_Examine_String(char *pString){
+
+	switch (g_CurrentState){
+		case s_IDLE:{	// Entering Debug Mode
+			if (UTL_CompareEqual(pString, "DEBUG\r\n")){
+				g_CurrentState = s_DBUG;
+				UTIL_SEQ_SetTask(1<<CFG_TASK_SETTINGSMENU, CFG_SCH_PRIO_0);
+			}
+			break;
+		}
+
+		case s_DBUG:{
+			if (UTL_CompareEqual(pString, "EXIT\r\n")){
+				g_CurrentState =  s_IDLE;
+				char x[10] = "IDLE";
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)x);
+			}
+			else{
+				// Create a function for this
+
+				if ((pString[0] < 'A') || (pString[0] > 'Z')){
+					// Error
+				}else{
+					char val[40] = "";
+					BLE_Extract_Value(val, pString);
+					BLE_Set_Settings(pString[0], val);
+				}
+			}
+			break;
+
+		}
+		default:
+			break;
+	}
+	return 0;
+}
+
+
+
 void BLE_Print_to_PMCU(void){
 	if (UTL_CompareEqual(UART_Buffer, "Status")){
 		xprintf(PMCU, "Attached\r\n");
@@ -88,6 +131,216 @@ void BLE_Print_to_USB(void){
 }
 
 
+
+
+
+
+uint8_t BLE_Extract_Value(char *dest, char *source){
+	// from S_SVR:09191234567
+	// to   A:09191234567
+	uint8_t i = 2;
+
+	if (source[1] != ':')
+		strcpy(dest, "NULL");
+
+	if (source[2] == '\0')
+		strcpy(dest, "NULL");
+
+
+	do{
+		dest[i-2] = source[i];
+		i++;
+	}while(source[i] != '\0');
+	return 0;
+}
+
+
+
+
+uint8_t BLE_Set_Settings(char variable, char *value){
+	char x[300] = "Invalid value\r\n";
+	uint8_t len;
+
+	switch (variable){
+		// Server Number
+		case 'A':{
+			if (BLE_Valid_Value('A', value)){
+				len = sprintf(x, "S_SVR:%s\r\n", value);
+				x[len] = '\0';
+			}
+			break;
+		}
+
+
+		// SIM Number
+		case 'B':{
+			if (BLE_Valid_Value('B', value)){
+				len = sprintf(x, "S_SIM:%s\r\n", value);
+				x[len] = '\0';
+			}
+			break;
+		}
+
+
+		// Sending Time
+		case 'C':{
+			if (BLE_Valid_Value('C', value)){
+				len = sprintf(x, "S_SDT:%d\r\n", atoi(value));
+				x[len] = '\0';
+			}
+			break;
+		}
+
+
+		// Password
+		case 'D':{
+			if (BLE_Valid_Value('D', value)){
+				len = sprintf(x, "S_PWD:%s\r\n", value);
+				x[len] = '\0';
+			}
+			break;
+		}
+
+		case 'E':{
+			len = sprintf(x, "S_DTM:%s\r\n", value);
+			break;
+		}
+
+		case 'F':{
+			len = sprintf(x, "S_CFG:%s\r\n", value);
+			break;
+		}
+
+		case 'G':{
+			len = sprintf(x, "S_RN1:%s\r\n", value);
+			strcpy(g_Reg1, value);
+			break;
+		}
+
+		case 'H':{
+			len = sprintf(x, "S_RN2:%s\r\n", value);
+			strcpy(g_Reg2, value);
+			break;
+		}
+
+		case 'I':{
+			len = sprintf(x, "S_RN3:%s\r\n", value);
+			strcpy(g_Reg3, value);
+			break;
+		}
+
+
+		case 'J':{
+			len = sprintf(x, "%s, %s, %s\r\n", g_Reg1, g_Reg2, g_Reg3);
+			break;
+		}
+
+
+		case 'K':{
+			if (atoi(value) == 1) strcpy(g_Reg1, "");
+			else if (atoi(value) == 2) strcpy(g_Reg2, "");
+			else if (atoi(value) == 3) strcpy(g_Reg3, "");
+			break;
+		}
+
+		case 'X':{
+			strcpy(x, "Resetting PMCU\r\n");
+			break;
+			//Reset_PMCU();
+		}
+
+		case 'Y':{
+			Print_Setting_Menu();
+			return 0;
+		}
+
+
+		default:{
+			len = 0;
+			break;
+		}
+	}
+
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)x);
+	return len;
+}
+
+
+
+
+
+
+bool BLE_Valid_Value(char ch, char *pVal){
+	bool valid;
+
+	switch (ch){
+		case 'A':{
+			if ((pVal[0] < '0') || (pVal[0] > '9') ||
+					(pVal[1] < '0') || (pVal[1] > '9') ||
+					(pVal[2] < '0') || (pVal[2] > '9') ||
+					(pVal[3] < '0') || (pVal[3] > '9') ||
+					(pVal[4] < '0') || (pVal[4] > '9') ||
+					(pVal[5] < '0') || (pVal[5] > '9') ||
+					(pVal[6] < '0') || (pVal[6] > '9') ||
+					(pVal[7] < '0') || (pVal[7] > '9') ||
+					(pVal[8] < '0') || (pVal[8] > '9') ||
+					(pVal[9] < '0') || (pVal[9] > '9') ||
+					(pVal[10]< '0') || (pVal[10]> '9') ||
+					(pVal[0]=='\0'))
+				valid =  false;
+			else
+				valid =  true;
+			break;
+		}
+
+		case 'B':{
+			if ((pVal[0] < '0') || (pVal[0] > '9') ||
+					(pVal[1] < '0') || (pVal[1] > '9') ||
+					(pVal[2] < '0') || (pVal[2] > '9') ||
+					(pVal[3] < '0') || (pVal[3] > '9') ||
+					(pVal[4] < '0') || (pVal[4] > '9') ||
+					(pVal[5] < '0') || (pVal[5] > '9') ||
+					(pVal[6] < '0') || (pVal[6] > '9') ||
+					(pVal[7] < '0') || (pVal[7] > '9') ||
+					(pVal[8] < '0') || (pVal[8] > '9') ||
+					(pVal[9] < '0') || (pVal[9] > '9') ||
+					(pVal[10]< '0') || (pVal[10]> '9') ||
+					(pVal[0]=='\0'))
+				valid =  false;
+			else
+				valid =  true;
+			break;
+		}
+
+		case 'C':{
+			if ((atoi(pVal) < 1) || (atoi(pVal) > 60))
+				valid =  false;
+			else
+				valid =  true;
+			break;
+		}
+
+
+		case 'D':{
+		if ((pVal[8] != '\r') ||
+				(pVal[9] != '\n') ||
+				(pVal[10] != '\0'))
+			valid = false;
+		else
+			valid = true;
+		break;
+		}
+
+
+
+		default:
+			valid = false;
+			break;
+	}
+
+	return valid;
+}
+
 /******************************************************************************
   * @brief	Clear buffer
   * @param	pBuffer	pointer to a buffer
@@ -104,8 +357,7 @@ void	Clear_Buffer(char *pBuffer, uint16_t len){
 
 
 
-void Clear_USB_Buffers(void)
-{
+void Clear_USB_Buffers(void){
 	memset(USB_BUFFER, '\0', 255);
 	f_USB = false;
 }
@@ -118,16 +370,16 @@ uint8_t CurrentState_Base_On_BLE_String(char *pBuf){
 	if (UTL_CompareEqual(pBuf, "DEBUG\r\n")){
 		return s_DBUG;
 	}
-	else if (UTL_CompareEqual(pBuf, "EXITDEBUG\r\n")){
+	else if (UTL_CompareEqual(pBuf, "EXIT\r\n")){
 		return s_IDLE;
 	}
 
-	return s_IDLE;
+	return g_CurrentState;
 }
 
 
 
-
+// Sample S_SVR:09191234567
 void Extract_PMCUCommand(void){
 	char var[4];
 	char val[30];
@@ -147,6 +399,7 @@ void Extract_PMCUCommand(void){
 
 
 void Extract_Value(char *dest, char *source){
+	// Sample S_SVR:09191234567
 	uint8_t i = 6;
 	do{
 		dest[i-6] = source[i];
