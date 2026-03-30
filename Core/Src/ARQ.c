@@ -75,7 +75,7 @@ void BLE_Debug_Mode(void){
 
 
 uint8_t BLE_Examine_String(char *pString){
-
+	char val[100];
 	switch (g_CurrentState){
 		case s_IDLE:{	// Entering Debug Mode
 			if (UTL_CompareEqual(pString, "DEBUG\r\n")){
@@ -88,22 +88,22 @@ uint8_t BLE_Examine_String(char *pString){
 		case s_DBUG:{
 			if (UTL_CompareEqual(pString, "EXIT\r\n")){
 				g_CurrentState =  s_IDLE;
-				char x[10] = "IDLE";
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)x);
+				strcpy(val, "IDLE\r\n");
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
 			}
 			else{
-				// Create a function for this
-
+				// [x] Create a function for this
 				if ((pString[0] < 'A') || (pString[0] > 'Z')){
-					// Error
-				}else{
-					char val[40] = "";
+					strcpy(val, "Invalid character input!\r\n");
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
+				}
+				else{
+					Clear_Buffer(val, 100);
 					BLE_Extract_Value(val, pString);
 					BLE_Set_Settings(pString[0], val);
 				}
 			}
 			break;
-
 		}
 		default:
 			break;
@@ -134,12 +134,12 @@ void BLE_Print_to_USB(void){
 
 
 
-
+// from S_SVR:09191234567
+// to   A:09191234567
 uint8_t BLE_Extract_Value(char *dest, char *source){
-	// from S_SVR:09191234567
-	// to   A:09191234567
 	uint8_t i = 2;
 
+	// Guard clause
 	if (source[1] != ':')
 		strcpy(dest, "NULL");
 
@@ -150,7 +150,9 @@ uint8_t BLE_Extract_Value(char *dest, char *source){
 	do{
 		dest[i-2] = source[i];
 		i++;
-	}while(source[i] != '\0');
+	}
+	while(source[i] != '\0');
+
 	return 0;
 }
 
@@ -165,7 +167,7 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Server Number
 		case 'A':{
 			if (BLE_Valid_Value('A', value)){
-				len = sprintf(x, "S_SVR:%s\r\n", value);
+				len = sprintf(x, "S_SVR:%s##", value);
 				x[len] = '\0';
 			}
 			break;
@@ -175,7 +177,7 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// SIM Number
 		case 'B':{
 			if (BLE_Valid_Value('B', value)){
-				len = sprintf(x, "S_SIM:%s\r\n", value);
+				len = sprintf(x, "S_SIM:%s##", value);
 				x[len] = '\0';
 			}
 			break;
