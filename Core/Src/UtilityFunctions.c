@@ -105,9 +105,6 @@ char *Get_Desired_Response(char *Response, uint8_t timeout){
 
 	CHAR_CTR = 0;
 	HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_CHAR, 1);
-	//HAL_UART_Receive_IT(UART_LTE, (uint8_t *)&UART_Char, 1);
-	//HAL_UART_Receive_IT(UART_AMR, (uint8_t *)&UART_Char, 1);
-	//HAL_UART_Receive_IT(UART_SDI, (uint8_t *)&UART_Char, 1);
 
 	len = strlen(Response);
 	Task_TimeOut_Start();

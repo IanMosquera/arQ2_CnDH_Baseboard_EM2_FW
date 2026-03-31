@@ -46,6 +46,7 @@ char g_firmwareVer[4];
 char g_Reg1[12] = "09091234567";
 char g_Reg2[12] = "09091230000";
 char g_Reg3[12] = "09090004567";
+char g_ServerNum[12];
 char g_SIMNum[12];
 char TEMP_Buffer[100];
 char UART_Buffer[100];
@@ -80,6 +81,7 @@ uint8_t BLE_Examine_String(char *pString){
 		case s_IDLE:{	// Entering Debug Mode
 			if (UTL_CompareEqual(pString, "DEBUG\r\n")){
 				g_CurrentState = s_DBUG;
+				//UTIL_SEQ_SetTask(1<<CFG_TASK_GETCFGFROMPMCU, CFG_SCH_PRIO_0);
 				UTIL_SEQ_SetTask(1<<CFG_TASK_SETTINGSMENU, CFG_SCH_PRIO_0);
 			}
 			break;
@@ -167,8 +169,11 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Server Number
 		case 'A':{
 			if (BLE_Valid_Value('A', value)){
-				len = sprintf(x, "S_SVR:%s##", value);
-				x[len] = '\0';
+				xprintf(PMCU, "S_SVR:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
 			}
 			break;
 		}
@@ -177,8 +182,11 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// SIM Number
 		case 'B':{
 			if (BLE_Valid_Value('B', value)){
-				len = sprintf(x, "S_SIM:%s##", value);
-				x[len] = '\0';
+				xprintf(PMCU, "S_SIM:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
 			}
 			break;
 		}
@@ -187,8 +195,13 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Sending Time
 		case 'C':{
 			if (BLE_Valid_Value('C', value)){
-				len = sprintf(x, "S_SDT:%d\r\n", atoi(value));
-				x[len] = '\0';
+//				len = sprintf(x, "S_SDT:%d\r\n", atoi(value));
+//				x[len] = '\0';
+				xprintf(PMCU, "S_SDT:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
 			}
 			break;
 		}
@@ -197,8 +210,13 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Password
 		case 'D':{
 			if (BLE_Valid_Value('D', value)){
-				len = sprintf(x, "S_PWD:%s\r\n", value);
-				x[len] = '\0';
+//				len = sprintf(x, "S_PWD:%s\r\n", value);
+//				x[len] = '\0';
+				xprintf(PMCU, "S_PWD:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
 			}
 			break;
 		}
@@ -248,7 +266,7 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		case 'X':{
 			strcpy(x, "Resetting PMCU\r\n");
 			break;
-			//Reset_PMCU();
+			Reset_PMCU();
 		}
 
 		case 'Y':{
@@ -412,6 +430,42 @@ void Extract_Value(char *dest, char *source){
 
 void Extract_Variable(char *dest, char *source){
 	strncpy(dest, source+2, 3);
+}
+
+
+
+
+
+void Get_Config_From_PMCU(void){
+	char str[300] = "DEBUG Recognized\r\n";
+
+	xprintf(PMCU, "DEBUG##");
+	if (!Get_Desired_Response("ACK", 2)){
+		strcpy(str, "ERROR sync\r\n");
+		SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)str);
+		return;
+	}
+
+
+	xprintf(PMCU, "G_FVR##");
+	if (Get_Desired_Response("FVR:", 10)){
+		strcpy(g_firmwareVer, RESP_Buffer);
+		HAL_Delay(50);
+	}
+
+	xprintf(PMCU, "G_SVR##");
+	if (Get_Desired_Response("SVR:", 10)){
+		strcpy(g_ServerNum, RESP_Buffer);
+		HAL_Delay(50);
+	}
+
+	xprintf(PMCU, "DONE##");
+
+	sprintf(str, "%s, %s\r\n",
+			g_firmwareVer,
+			g_ServerNum);
+
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)str);
 }
 
 
@@ -733,6 +787,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+
 			if (g_CurrentState != s_DBUG){
 				UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTUARTBUFFER, CFG_SCH_PRIO_0);
 			}
@@ -749,6 +804,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
 			f_PMCU_QRY = true;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
 		}
 
 		HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
@@ -760,6 +816,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == arQTimer){
+
+
 		if (Mili_Sec_Ctr == 20){
 			Mili_Sec_Ctr = 0;
 			TMR_SEC_Count();
@@ -776,7 +834,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				}
 			}
 		}
-		else	Mili_Sec_Ctr++;
+		else
+			Mili_Sec_Ctr++;
+
+
 
 		// Task Counter Timer
 		if (Process_Ctr >= 65000)	Process_Ctr = 0;
@@ -785,16 +846,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		// PMCU Responds
 		if (SEC == 32) f_PMCU_Responds = false;
 
-		if ((SEC > 25) && (SEC < 31))
-			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
-		else
-			HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
 
-
-		if (f_PMCU_QRY){
-			f_PMCU_QRY = false;
-			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
+		if (g_CurrentState == s_IDLE){
+			if ((SEC > 25) && (SEC < 31))
+				HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+			else
+				HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
 		}
+
+		// moved to UART callback instead
+//		if (f_PMCU_QRY){
+//			f_PMCU_QRY = false;
+//			UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTTOPMCU, CFG_SCH_PRIO_0);
+//		}
 	}
 }
 
