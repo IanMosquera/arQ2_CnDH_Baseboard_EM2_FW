@@ -233,10 +233,10 @@ uint8_t IDLE_State(void){
 
 	// Interrupt PMCU
 	if (f_CheckPMCU){
-		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SIG_PMCU_Port, SIG_PMCU, GPIO_PIN_SET);
 	}
 	else{
-		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SIG_PMCU_Port, SIG_PMCU, GPIO_PIN_RESET);
 	}
 
 
@@ -276,15 +276,13 @@ uint8_t IDLE_State(void){
 
 
 uint8_t INIT_State(void){
-	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+
 	HAL_TIM_Base_Start_IT(arQTimer);
 	DTM_DateTime_Set("26/02/04,15:13:00");
 /*	if (Retry(Get_DateTime_From_PMCU, 3)){
 		DTM_DateTime_Set(RESP_Buffer);
 		xprintf(PC, "Date Time: %s\r\n", g_DateTime);
 	}*/
-
-
 
 	return e_NONE;
 }

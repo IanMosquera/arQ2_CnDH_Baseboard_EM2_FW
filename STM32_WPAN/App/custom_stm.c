@@ -65,8 +65,8 @@ extern uint16_t Connection_Handle;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-uint16_t SizeTx = 128;
-uint16_t SizeRx = 128;
+uint16_t SizeTx = 1;
+uint16_t SizeRx = 1;
 
 /**
  * START of Section BLE_DRIVER_CONTEXT

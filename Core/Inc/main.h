@@ -71,15 +71,6 @@ void USB_CDC_RxHandler(uint8_t*, uint32_t);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define NRST_PMCU_Pin GPIO_PIN_0
-#define NRST_PMCU_GPIO_Port GPIOA
-#define STAT_Pin GPIO_PIN_4
-#define STAT_GPIO_Port GPIOA
-#define INT_PMCU_Pin GPIO_PIN_0
-#define INT_PMCU_GPIO_Port GPIOB
-#define PMCU_INT_Pin GPIO_PIN_1
-#define PMCU_INT_GPIO_Port GPIOB
-#define PMCU_INT_EXTI_IRQn EXTI1_IRQn
 
 /* USER CODE BEGIN Private defines */
 

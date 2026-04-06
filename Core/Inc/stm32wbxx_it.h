@@ -57,7 +57,6 @@ void PendSV_Handler(void);
 void SysTick_Handler(void);
 void RTC_WKUP_IRQHandler(void);
 void RCC_IRQHandler(void);
-void EXTI1_IRQHandler(void);
 void USB_HP_IRQHandler(void);
 void USB_LP_IRQHandler(void);
 void TIM1_UP_TIM16_IRQHandler(void);

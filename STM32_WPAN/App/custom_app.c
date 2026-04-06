@@ -226,7 +226,7 @@ void Custom_APP_Init(void)
  *************************************************************/
 
 /* SPP */
-__USED void Custom_Rx_Update_Char(void) /* Property Read */
+void Custom_Rx_Update_Char(void) /* Property Read */
 {
   uint8_t updateflag = 0;
 

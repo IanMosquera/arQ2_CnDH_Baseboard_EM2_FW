@@ -18,6 +18,27 @@ typedef enum{
 }Stream_t;
 
 
+
+// Pin Configurations
+//STAT PA4
+#define STAT 									GPIO_PIN_4
+#define STAT_Port 						GPIOA
+
+//NRST_PMCU PA0
+#define NRST_PMCU 						GPIO_PIN_0
+#define NRST_PMCU_Port 				GPIOA
+
+//Int_PMCU PB0
+#define SIG_PMCU 							GPIO_PIN_0
+#define SIG_PMCU_Port 				GPIOB
+
+// External Interrupt from PMCU PB1
+#define PMCU_INT							GPIO_PIN_1
+#define PMCU_INT_Port 				GPIOB
+#define PMCU_INT_EXTI_IRQn 		EXTI1_IRQn
+
+
+
 #define BLE_ENABLED 1
 
 #define arQTimer &htim17
@@ -74,12 +95,15 @@ void BLE_Print_to_PMCU(void);
 void BLE_Print_to_USB(void);
 void Clear_Buffer(char *pBuffer, uint16_t len);
 void Clear_USB_Buffers(void);
+void Configure_Interrupt_PMCU_Pin(void);
+void Configure_LED(void);
+void Configure_NRST_PMCU_Pin(void);
+void Configure_PMCU_INT(void);
 void Extract_PMCUCommand(void);
 void Extract_Value(char *dest, char *source);
 void Extract_Variable(char *dest, char *source);
 void Get_Config(void);
 void Get_Config_From_PMCU(void);
-void Interrupt_PMCU(void);
 void PMCU_Check(void);
 void Print_UARTBuffer(void);
 void Reset_PMCU(void);

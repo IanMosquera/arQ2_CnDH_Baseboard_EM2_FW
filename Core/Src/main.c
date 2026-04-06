@@ -120,8 +120,15 @@ int main(void)
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
+  /*Custom initialization of preipherals*/
+  Configure_LED();
+  Configure_Interrupt_PMCU_Pin();
+  Configure_NRST_PMCU_Pin();
+  Configure_PMCU_INT();
+
   CHAR_CTR = 0;
   HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+
 
   g_CurrentState = s_STRT;
   g_CurrentEvent = e_NONE;
@@ -217,7 +224,10 @@ void PeriphCommonClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-
+// rename this with respect to ISR
+void EXTI1_IRQHandler(void) {
+  HAL_GPIO_EXTI_IRQHandler(PMCU_INT);
+}
 
 
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len){

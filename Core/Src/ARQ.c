@@ -94,7 +94,6 @@ uint8_t BLE_Examine_String(char *pString){
 				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
 			}
 			else{
-				// [x] Create a function for this
 				if ((pString[0] < 'A') || (pString[0] > 'Z')){
 					strcpy(val, "Invalid character input!\r\n");
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
@@ -195,8 +194,6 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Sending Time
 		case 'C':{
 			if (BLE_Valid_Value('C', value)){
-//				len = sprintf(x, "S_SDT:%d\r\n", atoi(value));
-//				x[len] = '\0';
 				xprintf(PMCU, "S_SDT:%s", value);
 				if (Get_Desired_Response("ACK", 1))
 					strcpy(x,"SAVED!\r\n");
@@ -293,6 +290,16 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 bool BLE_Valid_Value(char ch, char *pVal){
 	bool valid;
 
+	bool inV_YY = false;
+	bool inV_MM = false;
+	bool inV_DD = false;
+	bool inV_hh = false;
+	bool inV_mm = false;
+	bool inV_ss = false;
+	bool inV_SP = false;
+
+	uint8_t YY,MM,DD,hh,mm,ss;
+
 	switch (ch){
 		case 'A':{
 			if ((pVal[0] < '0') || (pVal[0] > '9') ||
@@ -352,6 +359,51 @@ bool BLE_Valid_Value(char ch, char *pVal){
 		}
 
 
+		case 'E':{
+			if (pVal[2]	!= '/' ||
+					pVal[5]	!= '/' ||
+					pVal[8]	!= ',' ||
+					pVal[11]!= ':' ||
+					pVal[14]!= ':'){	//Invalid separator
+				inV_SP = true;
+			}
+			else{
+				inV_SP = false;
+			}
+
+			YY = ((pVal[0]-48)*10) + (pVal[1]-48);
+			if (YY < 25)
+				inV_YY = true;
+
+			MM = ((pVal[3]-48)*10) + (pVal[4]-48);
+			if (MM < 1 || MM > 12)
+				inV_MM = true;
+
+			DD = ((pVal[6]-48)*10) + (pVal[7]-48);
+			if (DD < 1 || DD > 31)
+				inV_DD = true;
+
+			hh = ((pVal[9]-48)*10) + (pVal[10]-48);
+			if (hh < 0 || hh > 24)
+				inV_hh = true;
+
+			mm = ((pVal[12]-48)*10) + (pVal[13]-48);
+			if (mm < 0 || mm > 60)
+				inV_mm = true;
+
+			ss = ((pVal[15]-48)*10) + (pVal[16]-48);
+			if (ss < 0 || ss > 60)
+				inV_ss = true;
+
+			if (inV_SP ||
+					inV_YY || inV_MM || inV_DD ||
+					inV_hh || inV_mm || inV_ss)
+				valid = false;
+			else
+				valid = true;
+		}
+
+
 
 		default:
 			valid = false;
@@ -381,6 +433,97 @@ void Clear_USB_Buffers(void){
 	memset(USB_BUFFER, '\0', 255);
 	f_USB = false;
 }
+
+
+
+void Configure_Interrupt_PMCU_Pin(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	/*Enable GPIO clock*/
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+
+
+  /*Configure GPIO pin : STAT_Pin */
+  GPIO_InitStruct.Pin = SIG_PMCU;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+  HAL_GPIO_Init(SIG_PMCU_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SIG_PMCU_Port, SIG_PMCU, GPIO_PIN_RESET);
+
+}
+
+
+
+
+
+void Configure_LED(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	/*Enable GPIO clock*/
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(STAT_Port, STAT, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : STAT_Pin */
+  GPIO_InitStruct.Pin = STAT;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+  HAL_GPIO_Init(STAT_Port, &GPIO_InitStruct);
+}
+
+
+
+
+void Configure_NRST_PMCU_Pin(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	/*Enable GPIO clock*/
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(NRST_PMCU_Port, NRST_PMCU, GPIO_PIN_SET);
+
+  /*Configure GPIO pin : STAT_Pin */
+  GPIO_InitStruct.Pin = NRST_PMCU;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+  HAL_GPIO_Init(NRST_PMCU_Port, &GPIO_InitStruct);
+}
+
+
+
+
+
+
+void Configure_PMCU_INT(void){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /*Configure GPIO pin : PMCU_INT_Pin */
+  GPIO_InitStruct.Pin = PMCU_INT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+
+  HAL_GPIO_Init(PMCU_INT_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  //PMCU_INT_EXTI_IRQn 		EXTI1_IRQn
+  HAL_NVIC_SetPriority(PMCU_INT_EXTI_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(PMCU_INT_EXTI_IRQn);
+}
+
+
+
+
+
 
 
 
@@ -661,19 +804,10 @@ void Print_UARTBuffer(void){
 
 
 
-
-void Uninterrupt_PMCU(void){
-
-}
-
-
-
-
-
 void Reset_PMCU(void){
-	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(NRST_PMCU_Port, NRST_PMCU, GPIO_PIN_RESET);
 	HAL_Delay(500);
-	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(NRST_PMCU_Port, NRST_PMCU, GPIO_PIN_SET);
 }
 
 
@@ -752,7 +886,7 @@ uint8_t Set_Variable(char *variable, char *value){
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-	if (GPIO_Pin == PMCU_INT_Pin)
+	if (GPIO_Pin == PMCU_INT)
 		f_PMCU_Responds = true;
 }
 
@@ -821,7 +955,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (Mili_Sec_Ctr == 20){
 			Mili_Sec_Ctr = 0;
 			TMR_SEC_Count();
-			HAL_GPIO_TogglePin(STAT_GPIO_Port, STAT_Pin);
+			HAL_GPIO_TogglePin(STAT_Port, STAT);
 			if (SEC == 30){
 				if (!f_PMCU_Responds)
 					g_Fault_Ctr++;
@@ -849,9 +983,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 		if (g_CurrentState == s_IDLE){
 			if ((SEC > 25) && (SEC < 31))
-				HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
+				HAL_GPIO_WritePin(SIG_PMCU_Port, SIG_PMCU, GPIO_PIN_SET);
 			else
-				HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
+				HAL_GPIO_WritePin(SIG_PMCU_Port, SIG_PMCU, GPIO_PIN_RESET);
 		}
 
 		// moved to UART callback instead
