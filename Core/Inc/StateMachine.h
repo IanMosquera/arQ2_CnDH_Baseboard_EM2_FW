@@ -26,6 +26,7 @@ static const char Settings_Menu[26][50] =
 		"I) Register #3",
     "J) List Registered Number",
     "K) Delete Registered Number",
+		"L) arQ Serial Number",
 		"-----",
 		"X) Reset PMCU",
 		"Y) Display Menu",

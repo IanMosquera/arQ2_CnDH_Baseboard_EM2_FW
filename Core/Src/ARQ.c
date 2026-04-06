@@ -145,9 +145,10 @@ uint8_t BLE_Extract_Value(char *dest, char *source){
 	if (source[1] != ':')
 		strcpy(dest, "NULL");
 
-	if (source[2] == '\0')
+	if ((source[1] == '\r') && (source[2] == '\n')){
 		strcpy(dest, "NULL");
-
+		return 0;
+	}
 
 	do{
 		dest[i-2] = source[i];
@@ -195,8 +196,6 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Sending Time
 		case 'C':{
 			if (BLE_Valid_Value('C', value)){
-//				len = sprintf(x, "S_SDT:%d\r\n", atoi(value));
-//				x[len] = '\0';
 				xprintf(PMCU, "S_SDT:%s", value);
 				if (Get_Desired_Response("ACK", 1))
 					strcpy(x,"SAVED!\r\n");
@@ -210,8 +209,6 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		// Password
 		case 'D':{
 			if (BLE_Valid_Value('D', value)){
-//				len = sprintf(x, "S_PWD:%s\r\n", value);
-//				x[len] = '\0';
 				xprintf(PMCU, "S_PWD:%s", value);
 				if (Get_Desired_Response("ACK", 1))
 					strcpy(x,"SAVED!\r\n");
@@ -221,8 +218,21 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 			break;
 		}
 
+		/*Date and Time*/
 		case 'E':{
-			len = sprintf(x, "S_DTM:%s\r\n", value);
+			if (BLE_Valid_Value('E', value)){
+				xprintf(PMCU, "S_DTM:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					strcpy(x,"SAVED!\r\n");
+					DTM_DateTime_Set(value);
+				}
+				else
+					strcpy(x,"Not Save, try again!\r\n");
+			}
+			else if (UTL_CompareEqual(value, "NULL")){
+				DTM_DateTime_Get();
+				sprintf(x, "DTM: %s\r\n", g_DateTime);
+			}
 			break;
 		}
 
@@ -232,20 +242,35 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		}
 
 		case 'G':{
-			len = sprintf(x, "S_RN1:%s\r\n", value);
-			strcpy(g_Reg1, value);
+			if (BLE_Valid_Value('G', value)){
+				xprintf(PMCU, "S_RN1:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
+			}
 			break;
 		}
 
 		case 'H':{
-			len = sprintf(x, "S_RN2:%s\r\n", value);
-			strcpy(g_Reg2, value);
+			if (BLE_Valid_Value('H', value)){
+				xprintf(PMCU, "S_RN2:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
+			}
 			break;
 		}
 
 		case 'I':{
-			len = sprintf(x, "S_RN3:%s\r\n", value);
-			strcpy(g_Reg3, value);
+			if (BLE_Valid_Value('I', value)){
+				xprintf(PMCU, "S_RN3:%s", value);
+				if (Get_Desired_Response("ACK", 1))
+					strcpy(x,"SAVED!\r\n");
+				else
+					strcpy(x,"Not Save, try again!\r\n");
+			}
 			break;
 		}
 
@@ -257,9 +282,33 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 
 
 		case 'K':{
-			if (atoi(value) == 1) strcpy(g_Reg1, "");
-			else if (atoi(value) == 2) strcpy(g_Reg2, "");
-			else if (atoi(value) == 3) strcpy(g_Reg3, "");
+			if (atoi(value) == 1){
+				xprintf(PMCU, "D_RN1:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					strcpy(x,"Deleted!\r\n");
+					strcpy(g_Reg1, "");
+				}
+				else
+					strcpy(x,"Not Deleted, try again!\r\n");
+			}
+			else if (atoi(value) == 2){
+				xprintf(PMCU, "D_RN2:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					strcpy(x,"Deleted!\r\n");
+					strcpy(g_Reg2, "");
+				}
+				else
+					strcpy(x,"Not Deleted, try again!\r\n");
+			}
+			else if (atoi(value) == 3){
+				xprintf(PMCU, "D_RN3:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					strcpy(x,"Deleted!\r\n");
+					strcpy(g_Reg3, "");
+				}
+				else
+					strcpy(x,"Not Deleted, try again!\r\n");
+			}
 			break;
 		}
 
@@ -292,6 +341,16 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 
 bool BLE_Valid_Value(char ch, char *pVal){
 	bool valid;
+
+	bool inV_YY = false;
+	bool inV_MM = false;
+	bool inV_DD = false;
+	bool inV_hh = false;
+	bool inV_mm = false;
+	bool inV_ss = false;
+	bool inV_SP = false;
+
+	uint8_t YY,MM,DD,hh,mm,ss;
 
 	switch (ch){
 		case 'A':{
@@ -352,6 +411,81 @@ bool BLE_Valid_Value(char ch, char *pVal){
 		}
 
 
+		case 'E':{
+			if (pVal[2]	!= '/' ||
+					pVal[5]	!= '/' ||
+					pVal[8]	!= ',' ||
+					pVal[11]!= ':' ||
+					pVal[14]!= ':'){	//Invalid separator
+				inV_SP = true;
+			}
+			else{
+				inV_SP = false;
+			}
+
+			YY = ((pVal[0]-48)*10) + (pVal[1]-48);
+			if (YY < 25)
+				inV_YY = true;
+
+			MM = ((pVal[3]-48)*10) + (pVal[4]-48);
+			if (MM < 1 || MM > 12)
+				inV_MM = true;
+
+			DD = ((pVal[6]-48)*10) + (pVal[7]-48);
+			if (DD < 1 || DD > 31)
+				inV_DD = true;
+
+			hh = ((pVal[9]-48)*10) + (pVal[10]-48);
+			if (hh < 0 || hh > 24)
+				inV_hh = true;
+
+			mm = ((pVal[12]-48)*10) + (pVal[13]-48);
+			if (mm < 0 || mm > 60)
+				inV_mm = true;
+
+			ss = ((pVal[15]-48)*10) + (pVal[16]-48);
+			if (ss < 0 || ss > 60)
+				inV_ss = true;
+
+			if (inV_SP ||
+					inV_YY || inV_MM || inV_DD ||
+					inV_hh || inV_mm || inV_ss)
+				valid = false;
+			else
+				valid = true;
+			break;
+		}
+
+		case 'F':{
+			if (!UTL_CompareEqual(pVal, "MBH") ||
+					!UTL_CompareEqual(pVal, "MBA") ||
+					!UTL_CompareEqual(pVal, "ARG"))
+				valid = false;
+			else
+				valid = true;
+			break;
+		}
+
+		case 'G':
+		case 'H':
+		case 'I':{
+			if ((pVal[0] < '0') || (pVal[0] > '9') ||
+					(pVal[1] < '0') || (pVal[1] > '9') ||
+					(pVal[2] < '0') || (pVal[2] > '9') ||
+					(pVal[3] < '0') || (pVal[3] > '9') ||
+					(pVal[4] < '0') || (pVal[4] > '9') ||
+					(pVal[5] < '0') || (pVal[5] > '9') ||
+					(pVal[6] < '0') || (pVal[6] > '9') ||
+					(pVal[7] < '0') || (pVal[7] > '9') ||
+					(pVal[8] < '0') || (pVal[8] > '9') ||
+					(pVal[9] < '0') || (pVal[9] > '9') ||
+					(pVal[10]< '0') || (pVal[10]> '9') ||
+					(pVal[0]=='\0'))
+				valid =  false;
+			else
+				valid =  true;
+			break;
+		}
 
 		default:
 			valid = false;
@@ -737,6 +871,11 @@ uint8_t Set_Variable(char *variable, char *value){
 	else if (UTL_CompareEqual(variable, "SIM")){
 		strcpy(g_SIMNum, value);
 		xprintf(PC, "Sim Number Synched: %s\r\n", g_SIMNum);
+	}
+
+	else if (UTL_CompareEqual(variable, "SDT")){
+		g_SendingTime = atoi(value);
+		xprintf(PC, "Sim Number Synched: %s\r\n", g_SendingTime);
 	}
 
 	HAL_Delay(200);
