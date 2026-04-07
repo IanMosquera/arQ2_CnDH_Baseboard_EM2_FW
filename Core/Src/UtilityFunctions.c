@@ -103,6 +103,7 @@ char *Get_Desired_Response(char *Response, uint8_t timeout){
 	char *ret = NULL;
 	uint8_t len;
 
+	Clear_Buffer(RESP_Buffer, 100);
 	CHAR_CTR = 0;
 	HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_CHAR, 1);
 

@@ -43,11 +43,13 @@ bool f_USB = false;
 char BLE_BUFFER[255];
 char g_DateTime[18];
 char g_firmwareVer[4];
+char g_Password[9] = "EMBEDDED";
 char g_Reg1[12] = "09091234567";
 char g_Reg2[12] = "09091230000";
 char g_Reg3[12] = "09090004567";
 char g_ServerNum[12];
 char g_SIMNum[12];
+char PMCU_Buffer[100];
 char TEMP_Buffer[100];
 char UART_Buffer[100];
 char USB_BUFFER[255];
@@ -67,21 +69,17 @@ uint8_t UART_CHAR;
 /*************************** Functions ****************************************/
 
 
-void BLE_Debug_Mode(void){
-
-}
-
-
 
 
 
 uint8_t BLE_Examine_String(char *pString){
 	char val[100];
+
 	switch (g_CurrentState){
 		case s_IDLE:{	// Entering Debug Mode
-			if (UTL_CompareEqual(pString, "DEBUG\r\n")){
+			sprintf(val, "DEBUG %s\r\n", g_Password);
+			if (UTL_CompareEqual(pString, val)){
 				g_CurrentState = s_DBUG;
-				//UTIL_SEQ_SetTask(1<<CFG_TASK_GETCFGFROMPMCU, CFG_SCH_PRIO_0);
 				UTIL_SEQ_SetTask(1<<CFG_TASK_SETTINGSMENU, CFG_SCH_PRIO_0);
 			}
 			break;
@@ -94,7 +92,6 @@ uint8_t BLE_Examine_String(char *pString){
 				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
 			}
 			else{
-				// [x] Create a function for this
 				if ((pString[0] < 'A') || (pString[0] > 'Z')){
 					strcpy(val, "Invalid character input!\r\n");
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)val);
@@ -107,6 +104,7 @@ uint8_t BLE_Examine_String(char *pString){
 			}
 			break;
 		}
+
 		default:
 			break;
 	}
@@ -166,15 +164,21 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 	char x[300] = "Invalid value\r\n";
 	uint8_t len;
 
+	if (!BLE_Valid_Value(variable, value)){
+		SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)x);
+		return false;
+	}
+
+
 	switch (variable){
 		// Server Number
 		case 'A':{
-			if (BLE_Valid_Value('A', value)){
-				xprintf(PMCU, "S_SVR:%s", value);
-				if (Get_Desired_Response("ACK", 1))
-					strcpy(x,"SAVED!\r\n");
-				else
-					strcpy(x,"Not Save, try again!\r\n");
+			xprintf(PMCU, "S_SVR:%s", value);
+			if (Get_Desired_Response("ACK", 1)){
+				strcpy(x,"SAVED!\r\n");
+			}
+			else{
+				strcpy(x,"Not Save, try again!\r\n");
 			}
 			break;
 		}
@@ -237,7 +241,26 @@ uint8_t BLE_Set_Settings(char variable, char *value){
 		}
 
 		case 'F':{
-			len = sprintf(x, "S_CFG:%s\r\n", value);
+			if (BLE_Valid_Value('F', value)){
+				xprintf(PMCU, "S_CFG:%s\r\n", value);
+				if (Get_Desired_Response("ACK", 3)){
+					strcpy(x,"SAVED!\r\n");
+					DTM_DateTime_Set(value);
+				}
+				else
+					strcpy(x,"Not Save, try again!\r\n");
+			}
+			else if (UTL_CompareEqual(value, "NULL")){
+				xprintf(PMCU, "S_CFG:%s\r\n", "NULL");
+				if (Get_Desired_Response("ACK", 3)){
+					char a[4] = "";
+					strncpy(a, RESP_Buffer, 3);
+					sprintf(x,"Config: %s\r\n", a);
+				}
+				else{
+					strcpy(x,"NOT retrieved!\r\n");
+				}
+			}
 			break;
 		}
 
@@ -457,12 +480,12 @@ bool BLE_Valid_Value(char ch, char *pVal){
 		}
 
 		case 'F':{
-			if (!UTL_CompareEqual(pVal, "MBH") ||
-					!UTL_CompareEqual(pVal, "MBA") ||
-					!UTL_CompareEqual(pVal, "ARG"))
-				valid = false;
-			else
+			if (UTL_CompareEqual(pVal, "MBH\r\n") ||
+					UTL_CompareEqual(pVal, "MBA\r\n") ||
+					UTL_CompareEqual(pVal, "ARG\r\n"))
 				valid = true;
+			else
+				valid = false;
 			break;
 		}
 
@@ -738,10 +761,6 @@ bool Retry(bool (*func)(void), uint8_t maxRetry){
 
 
 
-void Interrupt_PMCU(void){
-
-}
-
 
 
 
@@ -790,6 +809,7 @@ void Print_UARTBuffer(void){
 #endif
 
 	memset(UART_Buffer, '\0', 100);
+	CHAR_CTR = 0;
 }
 
 
@@ -915,14 +935,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		else
 			CHAR_CTR++;
 
-		// reset counter when carriage return encounters
-		/*if ((UART_CHAR== '\n') ||
-			 ((TEMP_Buffer[CHAR_CTR-2] == '\r') && (TEMP_Buffer[CHAR_CTR-1] == '\n')))
-		{
-			CHAR_CTR = 0;
-			sprintf(UART_Buffer, TEMP_Buffer);
-		}*/
-
+    // For messages from PMCU to be printed on USB
 		if ((TEMP_Buffer[CHAR_CTR-1] == '^') && (TEMP_Buffer[CHAR_CTR-2] == '^')){
 			CHAR_CTR = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
