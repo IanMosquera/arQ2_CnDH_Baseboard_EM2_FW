@@ -12,32 +12,7 @@
 
 
 
-static const char Settings_Menu[26][50] =
-{
-    "CHANGE SETTINGS",
-    "A) Server number",
-    "B) SIM number",
-    "C) Sending time",
-    "D) Password",
-		"E) Date and time",
-		"F) Sensor Config",
-		"G) Register #1",
-		"H) Register #2",
-		"I) Register #3",
-    "J) List Registered Number",
-    "K) Delete Registered Number",
-		"L) arQ Serial Number",
-		"-----",
-		"X) Reset PMCU",
-		"Y) Display Menu",
-    "To exit, type \"EXIT\"",
-    "",
-    "To change a setting:",
-    "1) Type the letter then colon",
-		"2) and input the correct value format",
-    "E.g., Changing a server number",
-    "      A:09091234567"
-};
+
 
 
 typedef enum

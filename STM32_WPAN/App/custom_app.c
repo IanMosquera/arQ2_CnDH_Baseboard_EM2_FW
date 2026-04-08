@@ -111,7 +111,7 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
     	pNotification->DataTransfered.pPayload[pNotification->DataTransfered.Length] = '\0';
 			strcpy(BLE_BUFFER, (char *)pNotification->DataTransfered.pPayload);
 
-			BLE_Examine_String(BLE_BUFFER);
+			Examine_BLE_String();
 //			g_CurrentState = CurrentState_Base_On_BLE_String(BLE_BUFFER);
 //
 //			if (g_CurrentState == s_DBUG){

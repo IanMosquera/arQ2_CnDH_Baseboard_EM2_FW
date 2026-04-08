@@ -18,10 +18,43 @@ typedef enum{
 }Stream_t;
 
 
-#define BLE_ENABLED 1
+typedef enum{
+	fail,
+	success
+}Function_Return_Status;
 
+
+#define BLE_ENABLED 1
 #define arQTimer &htim17
 
+
+
+static const char Settings_Menu[26][50] ={
+    "CHANGE SETTINGS",
+    "A) Server number",
+    "B) SIM number",
+    "C) Sending time",
+    "D) Password",
+		"E) Date and time",
+		"F) Sensor Config",
+		"G) Register Number 1",
+		"H) Register Number 2",
+		"I) Register Number 3",
+    "J) List Registered Number",
+    "K) Delete Registered Number",
+		"L) arQ Serial Number",
+		"M) Get Sensor Data",
+		"-----",
+		"X) Reset PMCU",
+		"Y) Display Menu",
+    "To exit, type \"EXIT\"",
+    "",
+    "To change a setting:",
+    "1) Type the letter then colon",
+		"2) and input the correct value format",
+    "E.g., Changing a server number",
+    "      A:09091234567"
+};
 
 extern bool f_CheckPMCU;
 extern bool f_Fault_Incremented;
@@ -41,6 +74,7 @@ extern char g_Password[];
 extern char g_Reg1[];
 extern char g_Reg2[];
 extern char g_Reg3[];
+extern char g_SerialNum[];
 extern char g_ServerNum[];
 extern char g_SIMNum[];
 extern char PMCU_Buffer[];
@@ -58,16 +92,16 @@ extern uint8_t Mili_Sec_Ctr;
 extern uint8_t UART_CHAR;
 
 
-bool BLE_Valid_Value(char ch, char *pVal);
+bool BLE_Valid_Value(char *pVal);
 bool Get_DateTime_From_PMCU(void);
 bool Retry(bool (*func)(void), uint8_t maxRetry);
 
+char *Extract_Value_From_BLE_DebugMessage(void);
 char GetChar(uint8_t timeout);
 
-uint8_t BLE_Examine_String(char *pString);
-uint8_t BLE_Extract_Value(char *dest, char *source);
-uint8_t BLE_Set_Settings(char variable, char *value);
+uint8_t BLE_Set_Settings(char *value);
 uint8_t CurrentState_Base_On_BLE_String(char *pBuf);
+uint8_t Examine_BLE_String(void);
 uint8_t Set_Variable(char *variable, char *value);
 
 
