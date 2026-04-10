@@ -11,19 +11,17 @@
 #include "main.h"
 
 
-bool ModifyCancelled(uint8_t maxRetry);
+bool CHAR_is_Not_Within_In_AtoZ(void);
+bool Correct_DEBUG_Detected(void);
+bool DEBUG_Exit_Detected(void);
+bool Valid_Value_Format(char *pVal);
 
-uint8_t Debug_Mode(void);
-uint8_t DBG_Change_DateTime(void);
-uint8_t DBG_Change_Password(void);
-uint8_t DBG_Change_SendingTime(void);
-uint8_t DBG_Change_SensorConfig(void);
-uint8_t DBG_Change_ServerNumber(void);
-uint8_t DBG_Change_SIMNumber(void);
-uint8_t DBG_Delete_RegisteredNumber(void);
-uint8_t DBG_List_Registered_Numbers(void);
+uint8_t Exit_Debug(void);
+uint8_t Extract_Value_From_BLE_DebugMessage(char *value);
+uint8_t Send_DEBUG_To_PMCU(void);
+uint8_t Set_DEBUG_Value_to_PMCU(char *value);
 
-void Print_Modify_Cancel(void);
+
 void Print_Setting_Menu(void);
 
 

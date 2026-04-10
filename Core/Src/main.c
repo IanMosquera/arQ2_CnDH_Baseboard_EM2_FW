@@ -120,7 +120,7 @@ int main(void)
   MX_RF_Init();
   /* USER CODE BEGIN 2 */
 
-  CHAR_CTR = 0;
+  Clear_UART_Buffer();
   HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 
   g_CurrentState = s_STRT;

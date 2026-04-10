@@ -2,7 +2,7 @@
 
 /*08 Apr 2026
  * [ARQ.c]
- * Cleaned up BLE Set settings
+ * Reworked BLE Set settings
  * - Added BLE_Valid_Value(value) Guard clause
  * - Implemented breaks on successful setting of values
  * - Added Setting of arQ Serial number

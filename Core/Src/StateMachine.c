@@ -136,7 +136,7 @@ void STM_StateManager(uint8_t event){
 
 
 uint8_t Filter_USB_String(void){
-	if (UTL_CompareEqual(USB_BUFFER, "DEBUG\r\n")){
+	if (Strings_Are_Equal(USB_BUFFER, "DEBUG\r\n")){
 		Clear_USB_Buffers();
 		f_InitState = true;
 		return e_DBUG;
@@ -152,7 +152,7 @@ uint8_t Filter_USB_String(void){
 
 uint8_t CHECK_State(void){
 	if (f_PMCU_CMD){
-		if (!UTL_CompareEqual(UART_Buffer, "ACK")){
+		if (!Strings_Are_Equal(UART_Buffer, "ACK")){
 			Reset_PMCU();
 			f_PMCU_CMD = false;
 			return e_DONE;
@@ -197,16 +197,6 @@ uint8_t CHECK_State(void){
 
 
 
-/******************************************************************************
-  * @brief	Debug State code
-  * @param	None
-  * @return events
-  * @FVer		7.0
-  * ***************************************************************************
-*/
-uint8_t DEBUG_State(void){
-	return Debug_Mode();
-}
 
 
 
@@ -216,7 +206,7 @@ uint8_t DEBUG_State(void){
 uint8_t IDLE_State(void){
 	// Initial State
 	if (f_InitState){
-	  CHAR_CTR = 0;
+		Clear_UART_Buffer();
 	  HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 		f_InitState = false;
 	}
@@ -231,14 +221,6 @@ uint8_t IDLE_State(void){
 
 
 
-	// Interrupt PMCU
-	if (f_CheckPMCU){
-		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
-	}
-	else{
-		HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_RESET);
-	}
-
 
 	// NRST_PMCU
 	if (g_Fault_Ctr == 5){
@@ -251,7 +233,7 @@ uint8_t IDLE_State(void){
 	//
 	if (f_PMCU_MSG){
 		f_PMCU_MSG = false;
-		Print_UARTBuffer();
+		Print_PMCU_Message_To_USB();
   }
 
 	if (f_PMCU_QRY){
@@ -278,13 +260,8 @@ uint8_t IDLE_State(void){
 uint8_t INIT_State(void){
 	HAL_GPIO_WritePin(NRST_PMCU_GPIO_Port, NRST_PMCU_Pin, GPIO_PIN_SET);
 	HAL_TIM_Base_Start_IT(arQTimer);
+
 	DTM_DateTime_Set("26/02/04,15:13:00");
-/*	if (Retry(Get_DateTime_From_PMCU, 3)){
-		DTM_DateTime_Set(RESP_Buffer);
-		xprintf(PC, "Date Time: %s\r\n", g_DateTime);
-	}*/
-
-
 
 	return e_NONE;
 }

@@ -16,35 +16,6 @@
 char RESP_Buffer[100];
 
 
-/******************************************************************************
-  * @brief	Print header text of DOST ASTI
-  * @param	None
-  * @return None
-  * @FVer		1.2.00
-  * ***************************************************************************
-*/
-char UTL_GetChar(uint8_t timeout){
-	uint8_t i = 1;
-
-	Task_TimeOut_Start();
-
-	while(i){
-		if (USB_BUFFER[1] == '\r' && USB_BUFFER[2] == '\n'){
-			return USB_BUFFER[0];
-		}
-
-		if (Task_TimeOut(timeout)){
-			return '\0';
-		}
-	}
-	return '\0';
-}
-
-
-
-
-
-
 
 
 
@@ -74,7 +45,7 @@ void UTL_GetString(uint8_t timeout){
 
 
 
-bool UTL_CompareEqual(char *pStr1, char *pStr2){
+bool Strings_Are_Equal(char *pStr1, char *pStr2){
 	uint8_t i;
 	i = strcmp(pStr1, pStr2);
 
@@ -104,7 +75,7 @@ char *Get_Desired_Response(char *Response, uint8_t timeout){
 	uint8_t len;
 
 	Clear_Buffer(RESP_Buffer, 100);
-	CHAR_CTR = 0;
+	Clear_UART_Buffer();
 	HAL_UART_Receive_IT(UART_MCU, (uint8_t *)&UART_CHAR, 1);
 
 	len = strlen(Response);
