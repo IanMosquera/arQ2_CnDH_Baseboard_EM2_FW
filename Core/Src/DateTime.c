@@ -50,11 +50,13 @@ void DTM_DateTime_Get(void){
 */
 void DTM_DateTime_Set(char *pMsg){
   char *pData = NULL;
+  char msg_Copy[100];
   char token[6];
 
+  strcpy(msg_Copy, pMsg);
   sprintf(token, "/,:\"");
 
-  pData = strtok(pMsg, token);
+  pData = strtok(msg_Copy, token);
   YRS = atoi(pData);
 
   for (uint8_t i = 0; i < 5; i++){

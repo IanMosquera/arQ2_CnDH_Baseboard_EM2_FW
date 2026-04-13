@@ -119,46 +119,51 @@ void Clear_USB_Buffers(void){
 
 
 
-uint8_t Examine_BLE_Buffer(void){
+void Examine_BLE_Buffer(void){
 	char try_again[16] = "Try Again\r\n";
 	char invalid_char[32] = "Invalid character input!\r\n";
 
-	if (g_CurrentState == s_IDLE){
+	if (g_currentState == s_IDLE){
 		if (Correct_DEBUG_Detected()){
 			if (!Send_DEBUG_To_PMCU()){
 				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
-				return fail;
 			}
-			return success;
+			UTIL_SEQ_SetTask(1<<CFG_TASK_SETTINGSMENU, CFG_SCH_PRIO_0);
 		}
-		return fail;
 	}
 
-
-
-	if (g_CurrentState == s_DBUG){
+	if (g_currentState == s_DBUG){
 		if (DEBUG_Exit_Detected()){
-			if (Exit_Debug()){
-				return success;
+			if (!Exit_Debug()){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			}
-			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
-			return fail;
 		}
 
 		if (CHAR_is_Not_Within_In_AtoZ()){
 			HAL_Delay(100);
 			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)invalid_char);
-			return fail;
 		}
 
 		char val[100];
 		Extract_Value_From_BLE_DebugMessage(val);
-		Set_DEBUG_Value_to_PMCU(val);
+		Send_DEBUG_Value_to_PMCU(val);
 	}
-	return success;
 }
 
 
+
+
+void Exit_BLE_DEBUG(void){
+	char ble_msg[32] = "Timeout! Exiting BLE Debug\r\n";
+	uint8_t len = strlen(ble_msg);
+
+	g_currentState =  s_IDLE;
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)ble_msg);
+	CDC_Transmit_FS((uint8_t *)ble_msg, len);
+
+	Clear_UART_Buffer();
+	HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
+}
 
 
 // Sample S_SVR:09191234567
@@ -300,11 +305,9 @@ void Print_PMCU_Message_To_USB(void){
 	uint8_t len = strlen(UART_Buffer);
 	CDC_Transmit_FS((uint8_t *)UART_Buffer, len);
 
-#if (BLE_ENABLED)
 	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)UART_Buffer);
-#endif
-
 	Clear_UART_Buffer();
+	HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 }
 
 
@@ -337,6 +340,7 @@ void Respond_Attached_To_PMCU(void){
 
 
 uint8_t Set_Variable(char *variable, char *value){
+
 	if (Strings_Are_Equal(variable, "DTM")){
 		DTM_DateTime_Set(value);
 		DTM_DateTime_Get();
@@ -356,11 +360,248 @@ uint8_t Set_Variable(char *variable, char *value){
 		return 0;
 	}
 
+
+	if (Strings_Are_Equal(variable, "SVR")){
+		strcpy(g_ServerNum, value);
+		xprintf(PC, "Sim Number Synched: %s\r\n", g_ServerNum);
+		return 0;
+	}
+
 	HAL_Delay(200);
 	return 0;
 }
 
 
+
+
+
+uint8_t Send_DEBUG_Value_to_PMCU(char *value){
+	char deleted[16] = "Deleted\r\n";
+	char invalid_val[32] = "Invalid value\r\n";
+	char not_retrieved[32] = "Not retrieved\r\n";
+	char reset_pmcu[32] = "Resetting PMCU\r\n";
+	char returned_value[100];
+	char saved[16] = "SAVED!\r\n";
+	char try_again[16] = "Try again\r\n";
+	char pmcu_msg[16];
+
+	/*GUARD CLAUSE*/
+
+	if (!Strings_Are_Equal(value, "NULL")){
+		if (!Valid_Value_Format(value)){
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)invalid_val);
+			return fail;
+		}
+	}
+
+
+
+	switch (BLE_BUFFER[0])
+	{
+		case Server_Num:{
+			sprintf(pmcu_msg, "S_SVR:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, strlen(pmcu_msg), 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+
+				if (Strings_Are_Equal(value, "NULL")){
+					strcpy(g_ServerNum, RESP_Buffer);
+					sprintf(returned_value, "Server Number: %s\r\n", g_ServerNum);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
+			}
+
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
+		}
+
+		case SIM_Num:{
+
+			xprintf(PMCU, "S_SIM:%s", value);
+			if (Get_Desired_Response("ACK", 1)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				return success;
+			}
+			return fail;
+		}
+
+		case Sending_Time:{
+			xprintf(PMCU, "S_SDT:%s", value);
+			if (Get_Desired_Response("ACK", 1)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				return success;
+			}
+			return fail;
+		}
+
+		case Password:{
+			xprintf(PMCU, "S_PWD:%s", value);
+			if (Get_Desired_Response("ACK", 1)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				return success;
+			}
+			return fail;
+		}
+
+		case Date_Time:{
+			sprintf(pmcu_msg, "S_DTM:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, strlen(pmcu_msg), 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+
+				if (Strings_Are_Equal(value, "NULL")){
+					DTM_DateTime_Set(RESP_Buffer);
+					sprintf(returned_value, "DTM: %s\r\n", RESP_Buffer);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					DTM_DateTime_Set(value);
+					return success;
+				}
+			}
+
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
+		}
+
+		case Sensor_Config:{
+			if (Strings_Are_Equal(value, "NULL")){
+				xprintf(PMCU, "S_CFG:%s\r\n", "NULL");
+				if (Get_Desired_Response("ACK", 3)){
+					char a[4] = "";
+					strncpy(a, RESP_Buffer, 3);
+					sprintf(returned_value,"Config: %s\r\n", a);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)not_retrieved);
+				return fail;
+			}
+
+			xprintf(PMCU, "S_CFG:%s\r\n", value);
+			if (Get_Desired_Response("ACK", 3)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				strcpy(g_SensorConfig, value);
+				return success;
+			}
+			return fail;
+		}
+
+		case Reg_Num1:
+		case Reg_Num2:
+		case Reg_Num3:{
+			xprintf(PMCU, "S_RN%c:%s", (BLE_BUFFER[0]-70) ,value);
+			if (Get_Desired_Response("ACK", 1)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				if (BLE_BUFFER[0] == Reg_Num1) strcpy(g_Reg1, value);
+				if (BLE_BUFFER[0] == Reg_Num2) strcpy(g_Reg2, value);
+				if (BLE_BUFFER[0] == Reg_Num3) strcpy(g_Reg3, value);
+				return success;
+			}
+			return fail;
+		}
+
+		case List_Reg_Num:{
+			sprintf(returned_value, "%s, %s, %s\r\n", g_Reg1, g_Reg2, g_Reg3);
+			return success;
+		}
+
+		case Delete_Reg_Num:{
+			if (atoi(value) == 1){
+				xprintf(PMCU, "S_DN1:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
+					strcpy(g_Reg1, "");
+					return success;
+				}
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+				return fail;
+			}
+
+			if (atoi(value) == 2){
+				xprintf(PMCU, "S_DN2:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
+					strcpy(g_Reg2, "");
+					return success;
+				}
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+				return fail;
+			}
+
+			if (atoi(value) == 3){
+				xprintf(PMCU, "S_DN3:%s", value);
+				if (Get_Desired_Response("ACK", 1)){
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
+					strcpy(g_Reg3, "");
+					return success;
+				}
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+				return fail;
+			}
+			return fail;
+		}
+
+		case ARQ_Serial_Num:{
+			xprintf(PMCU, "S_SRL:%s\r\n", value);
+			if (Get_Desired_Response("ACK", 3)){
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+				strcpy(g_SerialNum, value);
+				return success;
+			}
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
+		}
+
+		case Get_Sensor_Data:{
+			if (Strings_Are_Equal(value, "NULL")){
+				xprintf(PMCU, "S_AAA:%s\r\n", "NULL");
+				if (Get_Desired_Response("ACK", 3)){
+					char TOKEN[2] = ",";
+					char *pData = NULL;
+
+					pData = strtok(RESP_Buffer, TOKEN);
+					g_RGTipsData = atoi(pData);
+					pData = strtok(0, TOKEN);
+					g_RGAccuTipsData =  atoi(pData);
+
+					sprintf(returned_value, "Tips: %d, Accu:%d\r\n", g_RGTipsData, g_RGAccuTipsData);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)not_retrieved);
+				return false;
+			}
+		}
+
+		case Reset_PMCUx:{
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)reset_pmcu);
+			Reset_PMCU();
+			return success;
+		}
+
+		case Display_Menu:{
+			Print_Setting_Menu();
+			return success;
+		}
+
+
+		default:{
+			break;
+		}
+	}
+
+	return success;
+}
 
 
 
@@ -382,7 +623,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		if (UART_Index == 0)
 			memset(TEMP_Buffer, '\0', 100);
 
-		// Copy character to buffer
 		TEMP_Buffer[UART_Index] = UART_CHAR;
 
 		if (UART_Index > 100)
@@ -390,23 +630,25 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		else
 			UART_Index++;
 
-    // For messages from PMCU to be printed on USB
+
 		if ((TEMP_Buffer[UART_Index-1] == '^') && (TEMP_Buffer[UART_Index-2] == '^')){
 			UART_Index = 0;
 			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
 
-			if (g_CurrentState != s_DBUG){
-				UTIL_SEQ_SetTask(1<<CFG_TASK_PRINTUARTBUFFER, CFG_SCH_PRIO_0);
+			if (g_currentState != s_DBUG){
+				UTIL_SEQ_SetTask(1<<CFG_TASK_PrintPMCUMessageToUSB, CFG_SCH_PRIO_0);
 			}
 
 			if (Strings_Are_Equal(UART_Buffer, "EXIT_DEBUG")){
-				g_CurrentState = s_IDLE;
+				UTIL_SEQ_SetTask(1<<CFG_TASK_ExitBLEDEBUG, CFG_SCH_PRIO_0);
 			}
 		}
 
 		if ((TEMP_Buffer[UART_Index-1] == '$') && (TEMP_Buffer[UART_Index-2] == '$')){
+			TEMP_Buffer[UART_Index-2] = '\0'; // Remove trailing \r
+			TEMP_Buffer[UART_Index-1] = '\0';	// Remove trailing \n
 			UART_Index = 0;
-			snprintf(UART_Buffer, strlen(TEMP_Buffer)-1, "%s", TEMP_Buffer);
+			strcpy(UART_Buffer, TEMP_Buffer);
 			UTIL_SEQ_SetTask(1<<CFG_TASK_EXTRACTPMCUCMD, CFG_SCH_PRIO_0);
 		}
 
@@ -438,7 +680,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				else
 					g_Fault_Ctr = 0;
 
-				if (g_Fault_Ctr == 5){
+				if (g_Fault_Ctr == 3){
 					g_Fault_Ctr = 0;
 					UTIL_SEQ_SetTask(1<<CFG_TASK_RESETPMCU, CFG_SCH_PRIO_0);
 				}
@@ -455,7 +697,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (SEC == 32) f_PMCU_Responds = false;
 
 
-		if (g_CurrentState == s_IDLE){
+		if (g_currentState == s_IDLE){
 			if ((SEC > 25) && (SEC < 31))
 				HAL_GPIO_WritePin(INT_PMCU_GPIO_Port, INT_PMCU_Pin, GPIO_PIN_SET);
 			else

@@ -18,7 +18,7 @@
 #include <usart.h>
 
 e_Events g_CurrentEvent;
-s_States g_CurrentState;
+s_States g_currentState;
 s_States nextState;
 
 s_nextState nState[] = {
@@ -119,17 +119,17 @@ void Clear_PMCU_Flags(void){
 
 
 void STM_StateManager(uint8_t event){
-	nextState = STM_DetermineNextState(g_CurrentState, event);
+	nextState = STM_DetermineNextState(g_currentState, event);
 
 	// Transition to next state
-	if (nextState != g_CurrentState){
-		STM_UponExiting(g_CurrentState);
+	if (nextState != g_currentState){
+		STM_UponExiting(g_currentState);
 		STM_UponEntering(nextState);
-		g_CurrentState = nextState;
+		g_currentState = nextState;
 	}
 
 	if (event != e_Undefined)
-		g_CurrentEvent = STM_ActionWhileInState(g_CurrentState);
+		g_CurrentEvent = STM_ActionWhileInState(g_currentState);
 }
 
 
@@ -285,7 +285,7 @@ uint8_t INIT_State(void){
 
 uint8_t STM_DetermineNextState(uint8_t state, uint8_t event){
 	for (uint8_t i = 0; i < 50; i++){
-		if (nState[i].cST == g_CurrentState){
+		if (nState[i].cST == g_currentState){
 			if(nState[i].cEvt == event)
 				return nState[i].nST;
 		}

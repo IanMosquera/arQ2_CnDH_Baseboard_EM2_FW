@@ -91,14 +91,16 @@ bool Get_DateTime_From_PMCU(void);
 bool Retry(bool (*func)(void), uint8_t maxRetry);
 
 
-uint8_t Examine_BLE_Buffer(void);
+
 uint8_t Send_DEBUG_To_PMCU(void);
 uint8_t Set_Variable(char *variable, char *value);
-
+uint8_t Send_DEBUG_Value_to_PMCU(char *value);
 
 void Clear_Buffer(char *pBuffer, uint16_t len);
 void Clear_UART_Buffer(void);
 void Clear_USB_Buffers(void);
+void Examine_BLE_Buffer(void);
+void Exit_BLE_DEBUG(void);
 void Extract_PMCUCommand(void);
 void Extract_Value(char *dest, char *source);
 void Extract_Variable(char *dest, char *source);

@@ -70,7 +70,7 @@ typedef struct
 
 
 extern e_Events g_CurrentEvent;
-extern s_States g_CurrentState;
+extern s_States g_currentState;
 extern s_States nextState;
 
 

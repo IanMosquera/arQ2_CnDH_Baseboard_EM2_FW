@@ -123,7 +123,7 @@ int main(void)
   Clear_UART_Buffer();
   HAL_UART_Receive_IT(&huart1, &UART_CHAR, 1);
 
-  g_CurrentState = s_STRT;
+  g_currentState = s_STRT;
   g_CurrentEvent = e_NONE;
 
   /* USER CODE END 2 */

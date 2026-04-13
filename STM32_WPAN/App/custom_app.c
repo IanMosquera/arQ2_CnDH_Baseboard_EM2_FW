@@ -111,7 +111,8 @@ void Custom_STM_App_Notification(Custom_STM_App_Notification_evt_t *pNotificatio
     	pNotification->DataTransfered.pPayload[pNotification->DataTransfered.Length] = '\0';
 			strcpy(BLE_BUFFER, (char *)pNotification->DataTransfered.pPayload);
 
-			Examine_BLE_Buffer();
+			//Examine_BLE_Buffer();
+			UTIL_SEQ_SetTask(1<<CFG_TASK_ExamineBLEBuffer, CFG_SCH_PRIO_0);
 
 
       /* USER CODE END CUSTOM_STM_TX_WRITE_NO_RESP_EVT */
@@ -195,13 +196,15 @@ void Custom_APP_Init(void)
   /* USER CODE BEGIN CUSTOM_APP_Init */
 	INIT_State();
 
-	g_CurrentState = s_IDLE;
+	g_currentState = s_IDLE;
 
+	UTIL_SEQ_RegTask(1 << CFG_TASK_ExitBLEDEBUG, UTIL_SEQ_RFU, Exit_BLE_DEBUG);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_ExamineBLEBuffer, UTIL_SEQ_RFU, Examine_BLE_Buffer);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_EXTRACTPMCUCMD, UTIL_SEQ_RFU, Extract_PMCUCommand);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_GETCFGFROMPMCU, UTIL_SEQ_RFU, Get_Config_From_PMCU);
+	UTIL_SEQ_RegTask(1 << CFG_TASK_PrintPMCUMessageToUSB, UTIL_SEQ_RFU, Print_PMCU_Message_To_USB);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOPMCU, UTIL_SEQ_RFU, Respond_Attached_To_PMCU);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTTOUSB, UTIL_SEQ_RFU, Print_BLE_BUFFER_to_USB);
-	UTIL_SEQ_RegTask(1 << CFG_TASK_PRINTUARTBUFFER, UTIL_SEQ_RFU, Print_PMCU_Message_To_USB);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_RESETPMCU, UTIL_SEQ_RFU, Reset_PMCU);
 	UTIL_SEQ_RegTask(1 << CFG_TASK_SETTINGSMENU, UTIL_SEQ_RFU, Print_Setting_Menu);
 

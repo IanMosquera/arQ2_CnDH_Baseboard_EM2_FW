@@ -19,7 +19,7 @@ bool Valid_Value_Format(char *pVal);
 uint8_t Exit_Debug(void);
 uint8_t Extract_Value_From_BLE_DebugMessage(char *value);
 uint8_t Send_DEBUG_To_PMCU(void);
-uint8_t Set_DEBUG_Value_to_PMCU(char *value);
+
 
 
 void Print_Setting_Menu(void);
