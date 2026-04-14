@@ -376,14 +376,13 @@ uint8_t Set_Variable(char *variable, char *value){
 
 
 uint8_t Send_DEBUG_Value_to_PMCU(char *value){
-	char deleted[16] = "Deleted\r\n";
 	char invalid_val[32] = "Invalid value\r\n";
-	char not_retrieved[32] = "Not retrieved\r\n";
 	char reset_pmcu[32] = "Resetting PMCU\r\n";
 	char returned_value[100];
 	char saved[16] = "SAVED!\r\n";
 	char try_again[16] = "Try again\r\n";
 	char pmcu_msg[16];
+	uint8_t len;
 
 	/*GUARD CLAUSE*/
 
@@ -396,17 +395,18 @@ uint8_t Send_DEBUG_Value_to_PMCU(char *value){
 
 
 
-	switch (BLE_BUFFER[0])
-	{
-		case Server_Num:{
-			sprintf(pmcu_msg, "S_SVR:%s\r\n", value);
-			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, strlen(pmcu_msg), 100);
+	switch (BLE_BUFFER[0]){
+		case Server_Num:
+			return BLE_Set_Server_Number(value);
+
+		case SIM_Num:{
+			len = sprintf(pmcu_msg, "S_SIM:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
 
 			if (Get_Desired_Response("ACK", 3)){
-
 				if (Strings_Are_Equal(value, "NULL")){
-					strcpy(g_ServerNum, RESP_Buffer);
-					sprintf(returned_value, "Server Number: %s\r\n", g_ServerNum);
+					strcpy(g_SIMNum, RESP_Buffer);
+					sprintf(returned_value, "SIM Number: %s\r\n", g_SIMNum);
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
 					return success;
 				}
@@ -420,37 +420,50 @@ uint8_t Send_DEBUG_Value_to_PMCU(char *value){
 			return fail;
 		}
 
-		case SIM_Num:{
-
-			xprintf(PMCU, "S_SIM:%s", value);
-			if (Get_Desired_Response("ACK", 1)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				return success;
-			}
-			return fail;
-		}
-
 		case Sending_Time:{
-			xprintf(PMCU, "S_SDT:%s", value);
-			if (Get_Desired_Response("ACK", 1)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				return success;
+			len = sprintf(pmcu_msg, "S_SDT:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				if (Strings_Are_Equal(value, "NULL")){
+					g_SendingTime = atoi(RESP_Buffer);
+					sprintf(returned_value, "Sending time: %d\r\n", g_SendingTime);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
 			}
+
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			return fail;
 		}
 
 		case Password:{
-			xprintf(PMCU, "S_PWD:%s", value);
-			if (Get_Desired_Response("ACK", 1)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				return success;
+			len = sprintf(pmcu_msg, "S_PWD:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				if (Strings_Are_Equal(value, "NULL")){
+					strcpy(g_Password, RESP_Buffer);
+					sprintf(returned_value, "Password: %s\r\n", g_Password);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
 			}
+
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			return fail;
 		}
 
 		case Date_Time:{
-			sprintf(pmcu_msg, "S_DTM:%s\r\n", value);
-			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, strlen(pmcu_msg), 100);
+			xprintf(PMCU, "S_DTM:%s\r\n", value);
 
 			if (Get_Desired_Response("ACK", 3)){
 
@@ -462,7 +475,6 @@ uint8_t Send_DEBUG_Value_to_PMCU(char *value){
 				}
 				else{
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-					DTM_DateTime_Set(value);
 					return success;
 				}
 			}
@@ -472,115 +484,123 @@ uint8_t Send_DEBUG_Value_to_PMCU(char *value){
 		}
 
 		case Sensor_Config:{
-			if (Strings_Are_Equal(value, "NULL")){
-				xprintf(PMCU, "S_CFG:%s\r\n", "NULL");
-				if (Get_Desired_Response("ACK", 3)){
-					char a[4] = "";
-					strncpy(a, RESP_Buffer, 3);
-					sprintf(returned_value,"Config: %s\r\n", a);
+			len = sprintf(pmcu_msg, "S_CFG:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				if (Strings_Are_Equal(value, "NULL")){
+					strcpy(g_SensorConfig, RESP_Buffer);
+					sprintf(returned_value, "Sensor Config: %s\r\n", g_SensorConfig);
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
 					return success;
 				}
-
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)not_retrieved);
-				return fail;
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
 			}
 
-			xprintf(PMCU, "S_CFG:%s\r\n", value);
-			if (Get_Desired_Response("ACK", 3)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				strcpy(g_SensorConfig, value);
-				return success;
-			}
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			return fail;
 		}
 
 		case Reg_Num1:
 		case Reg_Num2:
 		case Reg_Num3:{
-			xprintf(PMCU, "S_RN%c:%s", (BLE_BUFFER[0]-70) ,value);
-			if (Get_Desired_Response("ACK", 1)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				if (BLE_BUFFER[0] == Reg_Num1) strcpy(g_Reg1, value);
-				if (BLE_BUFFER[0] == Reg_Num2) strcpy(g_Reg2, value);
-				if (BLE_BUFFER[0] == Reg_Num3) strcpy(g_Reg3, value);
-				return success;
+			len = sprintf(pmcu_msg, "S_RN%d:%s\r\n", (BLE_BUFFER[0]-70), value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				if (Strings_Are_Equal(value, "NULL")){
+					if (BLE_BUFFER[0] == Reg_Num1) strcpy(g_Reg1, RESP_Buffer);
+					if (BLE_BUFFER[0] == Reg_Num2) strcpy(g_Reg2, RESP_Buffer);
+					if (BLE_BUFFER[0] == Reg_Num3) strcpy(g_Reg3, RESP_Buffer);
+					sprintf(returned_value, "RegNum #%d: %s\r\n", (BLE_BUFFER[0]-70), RESP_Buffer);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+					return success;
+				}
+				else{
+					if (BLE_BUFFER[0] == Reg_Num1) strcpy(g_Reg1, value);
+					if (BLE_BUFFER[0] == Reg_Num2) strcpy(g_Reg2, value);
+					if (BLE_BUFFER[0] == Reg_Num3) strcpy(g_Reg3, value);
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
 			}
+
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			return fail;
 		}
 
 		case List_Reg_Num:{
-			sprintf(returned_value, "%s, %s, %s\r\n", g_Reg1, g_Reg2, g_Reg3);
-			return success;
-		}
+			len = sprintf(pmcu_msg, "S_LRN:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
 
-		case Delete_Reg_Num:{
-			if (atoi(value) == 1){
-				xprintf(PMCU, "S_DN1:%s", value);
-				if (Get_Desired_Response("ACK", 1)){
-					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
-					strcpy(g_Reg1, "");
-					return success;
-				}
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
-				return fail;
-			}
-
-			if (atoi(value) == 2){
-				xprintf(PMCU, "S_DN2:%s", value);
-				if (Get_Desired_Response("ACK", 1)){
-					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
-					strcpy(g_Reg2, "");
-					return success;
-				}
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
-				return fail;
-			}
-
-			if (atoi(value) == 3){
-				xprintf(PMCU, "S_DN3:%s", value);
-				if (Get_Desired_Response("ACK", 1)){
-					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)deleted);
-					strcpy(g_Reg3, "");
-					return success;
-				}
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
-				return fail;
-			}
-			return fail;
-		}
-
-		case ARQ_Serial_Num:{
-			xprintf(PMCU, "S_SRL:%s\r\n", value);
 			if (Get_Desired_Response("ACK", 3)){
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
-				strcpy(g_SerialNum, value);
+				sprintf(returned_value, "Registered Numbers: %s\r\n", RESP_Buffer);
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
 				return success;
 			}
 			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
 			return fail;
 		}
 
-		case Get_Sensor_Data:{
-			if (Strings_Are_Equal(value, "NULL")){
-				xprintf(PMCU, "S_AAA:%s\r\n", "NULL");
-				if (Get_Desired_Response("ACK", 3)){
-					char TOKEN[2] = ",";
-					char *pData = NULL;
+		case Delete_Reg_Num:{
+			len = sprintf(pmcu_msg, "S_DRN:%c\r\n", value[0]);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
 
-					pData = strtok(RESP_Buffer, TOKEN);
-					g_RGTipsData = atoi(pData);
-					pData = strtok(0, TOKEN);
-					g_RGAccuTipsData =  atoi(pData);
+			if (Get_Desired_Response("ACK", 3)){
+				sprintf(returned_value, "Deleted RegNum No.%c!\r\n", value[0]);
+				if (atoi(value) == 1) strcpy(g_Reg1, "");
+				if (atoi(value) == 2) strcpy(g_Reg2, "");
+				if (atoi(value) == 3) strcpy(g_Reg3, "");
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+				return success;
+			}
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
+		}
 
-					sprintf(returned_value, "Tips: %d, Accu:%d\r\n", g_RGTipsData, g_RGAccuTipsData);
+		case ARQ_Serial_Num:{
+			len = sprintf(pmcu_msg, "S_SRL:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				if (Strings_Are_Equal(value, "NULL")){
+					strcpy(g_SerialNum, RESP_Buffer);
+					sprintf(returned_value, "arQ Serial Number: %s\r\n", g_SerialNum);
 					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
 					return success;
 				}
-
-				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)not_retrieved);
-				return false;
+				else{
+					SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+					return success;
+				}
 			}
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
+		}
+
+		case Get_Sensor_Data:{
+			len = sprintf(pmcu_msg, "S_DTA:%s\r\n", value);
+			HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+			if (Get_Desired_Response("ACK", 3)){
+				char TOKEN[2] = ",";
+				char *pData = NULL;
+
+				pData = strtok(RESP_Buffer, TOKEN);
+				g_RGTipsData = atoi(pData);
+				pData = strtok(0, TOKEN);
+				g_RGAccuTipsData =  atoi(pData);
+				sprintf(returned_value, "Tips: %d, Accu:%d\r\n",
+						g_RGTipsData,
+						g_RGAccuTipsData);
+				SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+				return success;
+			}
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+			return fail;
 		}
 
 		case Reset_PMCUx:{
@@ -680,7 +700,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				else
 					g_Fault_Ctr = 0;
 
-				if (g_Fault_Ctr == 3){
+				if (g_Fault_Ctr == 5){
 					g_Fault_Ctr = 0;
 					UTIL_SEQ_SetTask(1<<CFG_TASK_RESETPMCU, CFG_SCH_PRIO_0);
 				}
@@ -713,80 +733,77 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 void xprintf(uint8_t stream, char *FormatString, ...){
 	char *sval;
-	char cdcSTR[100];
+	char cval;
 	char format[10];
 	char tempSTR[100];
-
+	char finalSTR[100];
 	float fval;
-
 	int8_t i, j, x;
-
 	int  ival;
-
 	uint8_t len;
 	va_list args;
+
+	Clear_Buffer(tempSTR, 100);
+	Clear_Buffer(finalSTR, 100);
 
 	len = strlen(FormatString);
 	va_start(args, FormatString);
 
-	for (i = 0, j = 0; j < len; i++, j++)
-	{
+	for (i = 0, j = 0; j < len; i++, j++){
 		tempSTR[i] = FormatString[j];
 
 		if (FormatString[j] == '%'){
-			tempSTR[i] = '\0';
 			j++;
+			tempSTR[i] = '\0';
+			strcat(finalSTR, tempSTR);
 
-			if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-			else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
-
-			HAL_Delay(50);
 			x = 0;
 			format[x++] = '%';
 
-			if (FormatString[j] != 's'){
+			if ((FormatString[j] != 's') || (FormatString[j] != 'c')){
 				do {
 				 if (FormatString[j] == 'd')
 						 format[x] = FormatString[j];
 				 else
 						 format[x++] = FormatString[j++];
-				}
-				while (FormatString[j] != 'd' && FormatString[j] != 'f');
+				}while (FormatString[j] != 'd' && FormatString[j] != 'f');
 			}
 
 			if (FormatString[j] == 's'){
 				sval = va_arg(args, char *);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)sval, strlen(sval));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)sval, strlen(sval), HAL_MAX_DELAY);
+				sprintf(tempSTR, "%s", sval);
+				strcat(finalSTR, tempSTR);
 			}
 
-			else if (FormatString[j] == 'd')
-			{
+			if (FormatString[j] == 'c'){
+				cval = va_arg(args, int);
+				sprintf(tempSTR, "%c", cval);
+				strcat(finalSTR, tempSTR);
+			}
+
+			else if (FormatString[j] == 'd'){
 				format[x] = 'd';
 				format[x+1] = '\0';
 				ival = va_arg(args, int);
-				sprintf(cdcSTR, format, ival);
-
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				sprintf(tempSTR, format, ival);
+				strcat(finalSTR, tempSTR);
 			}
-			else if (FormatString[j] == 'f')
-			{
+
+			if (FormatString[j] == 'f'){
 				format[x] = 'f';
 				format[x+1] = '\0';
 				fval = va_arg(args, double);
-				sprintf(cdcSTR, format, fval);
-				if (stream == PC) CDC_Transmit_FS((uint8_t *)cdcSTR, strlen(cdcSTR));
-				else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)cdcSTR, strlen(cdcSTR), HAL_MAX_DELAY);
+				sprintf(tempSTR, format, fval);
+				strcat(finalSTR, tempSTR);
 			}
-			HAL_Delay(50);
 			i = -1;
 		}
 	}
+
 	tempSTR[i] = '\0';
-	if (stream == PC) CDC_Transmit_FS((uint8_t *)tempSTR, strlen(tempSTR));
-	else if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)tempSTR, strlen(tempSTR), HAL_MAX_DELAY);
+	strcat(finalSTR, tempSTR);
+	if (stream == PC) CDC_Transmit_FS((uint8_t *)finalSTR, strlen(finalSTR));
+	if (stream == PMCU) HAL_UART_Transmit(&huart1, (uint8_t *)finalSTR, strlen(finalSTR), 100);
 	va_end(args);
 }
 

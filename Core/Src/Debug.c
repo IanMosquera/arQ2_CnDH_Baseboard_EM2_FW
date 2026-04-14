@@ -26,7 +26,32 @@
 
 
 
+uint8_t BLE_Set_Server_Number(char *value){
+	char pmcu_msg[16];
+	char returned_value[100];
+	char saved[16] = "SAVED!\r\n";
+	char try_again[16] = "Try again\r\n";
+	uint8_t len;
 
+	len = sprintf(pmcu_msg, "S_SVR:%s\r\n", value);
+	HAL_UART_Transmit(&huart1, (uint8_t *)pmcu_msg, len, 100);
+
+	if (Get_Desired_Response("ACK", 3)){
+		if (Strings_Are_Equal(value, "NULL")){
+			strcpy(g_ServerNum, RESP_Buffer);
+			sprintf(returned_value, "Server Number: %s\r\n", g_ServerNum);
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)returned_value);
+			return success;
+		}
+		else{
+			SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)saved);
+			return success;
+		}
+	}
+	SPP_Update_Char(CUSTOM_STM_RX, (uint8_t *)try_again);
+	return fail;
+
+}
 
 
 
@@ -317,7 +342,7 @@ bool Valid_Value_Format(char *pVal){
 			break;
 		}
 
-		case 'F':{
+		case Sensor_Config:{
 			if (Strings_Are_Equal(pVal, "MBH\r\n") ||
 					Strings_Are_Equal(pVal, "MBA\r\n") ||
 					Strings_Are_Equal(pVal, "ARG\r\n"))
@@ -346,6 +371,13 @@ bool Valid_Value_Format(char *pVal){
 			else
 				valid =  true;
 			break;
+		}
+
+		case Delete_Reg_Num:{
+			if (pVal[0] > '0' || pVal[0] < '4')
+				valid =  true;
+			else
+				valid = false;
 		}
 
 		default:{
